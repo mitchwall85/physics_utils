@@ -1,21 +1,38 @@
-def generate_blue_shades(n):
+import matplotlib.pyplot as plt
+
+
+def generate_shades(n, base_color):
     # Generate n shades of blue using the 'Blues' colormap
-    base_blue = (0.0, 0.0, 1.0, 1.0)  # RGBA: blue with full opacity
+    """generate shades of a base color
+
+    Args:
+        n (_type_): number of shades to generate
+        base_color (_type_): 4 length tuple representing the base color
+
+    Returns:
+        _type_: list of shades
+    """
+    # examples 
+    # base_blue = (0.0, 0.0, 1.0, 1.0)
+    # base_green = (0.0, 1.0, 0.0, 1.0) 
+    # base_red = (1.0, 0.0, 0.0, 1.0) 
     
     # Generate n shades of blue with varying opacity
     if n == 1:
-        blue_shades = [base_blue]
+        shades = [base_color]
     else:
-        blue_shades = [(base_blue[0], base_blue[1], base_blue[2], 0.2 + 0.8 * (i / (n - 1))) for i in range(n)]
+        shades = [(base_color[0], base_color[1], base_color[2], 0.2 + 0.8 * (i / (n - 1))) for i in range(n)]
     
-    
-    return blue_shades
+    return shades
 
 def generate_jet_colors(n):
     # Get the 'jet' colormap from matplotlib
     cmap = plt.get_cmap('jet')
     
     # Generate n colors from the jet colormap
-    jet_colors = [cmap(i / (n - 1)) for i in range(n)]
+    if n == 1:
+        jet_colors = [cmap(0.5)]
+    else:
+        jet_colors = [cmap(i / (n - 1)) for i in range(n)]
     
-    return jet_colors
+    return jet_colors

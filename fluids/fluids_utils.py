@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import fsolve
-from physics_utils.constants import AVOGADRO, GASCON
+from physics_utils.constants import AVOGADRO, GASCON, STEFBOLTZ
 
 
 def find_rh_conds(u_1, rho_1, P_1, gam):
@@ -71,3 +71,11 @@ def spec_heat_mix(cp_or_cv, T, nDen, Ms, n_r_dof):
         c_spec += Y[i]*c[i]
 
     return c_spec # [J/kg/K]
+
+def stef_bolts_qdot(eps, Tw):
+    # get heat flux from stefan boltzmann law
+    return eps*STEFBOLTZ*Tw**4
+
+def stef_boltz_tw(eps, qdot):
+    # get wall temp from stefan boltzmann law
+    return (qdot/eps/STEFBOLTZ)**0.25

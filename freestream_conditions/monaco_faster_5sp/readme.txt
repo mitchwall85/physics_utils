@@ -1,0 +1,5 @@
+  - raw data generated from EarthGRAM: `faster_OUTPUT.csv`
+	- for processing raw data, scaling up the 5 sp. air species to retain the orginal total density by mass. This generates "conditions_gram_mass.txt": `conditions_gram.py`
+	- plot raw and 5 sp. data to verify: plot_conditions_gram.py
+	- processed 5 sp. data: `conditions_gram_mass_v1.txt `
+	- main script for writing out inflow condition files: `calc_inflow_mass_v1.py`

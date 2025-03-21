@@ -31,7 +31,8 @@ def bj_conv_heating(rho, v, rn):
 
     if v < 3000 or v > 17000:
         # send error
-        raise ValueError('velocity out of range')
+        return -1
+        # raise ValueError('velocity out of range')
 
     return  const*rho**rho_exp*v**v_exp*rn**r_exp
 

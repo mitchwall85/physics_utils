@@ -79,3 +79,35 @@ def stef_bolts_qdot(eps, Tw):
 def stef_boltz_tw(eps, qdot):
     # get wall temp from stefan boltzmann law
     return (qdot/eps/STEFBOLTZ)**0.25
+
+def mass_mix_kgm3(nDen, Ms):
+    """average molar mass of a mixture
+
+    Args:
+        nDen (list): number densities of a species
+        Ms (list): molar mass of each species
+
+    Returns:
+        float: mass of the mixture, kg/m^3
+    """
+    # average molar mass of a mixture
+    M_tot = np.sum(np.multiply(nDen, Ms)/AVOGADRO)
+    return M_tot
+
+
+def mass_mol_mix(nDen, Ms):
+    """average molar mass of a mixture
+
+    Args:
+        nDen (list): number densities of a species
+        Ms (list): molar mass of each species
+
+    Returns:
+        float: mass of the mixture, kg/mol
+    """
+    # average molar mass of a mixture
+    tot = np.sum(nDen)
+    frac = nDen/tot
+    M_tot = np.sum(frac*Ms)
+    return M_tot
+

@@ -1,4 +1,6 @@
 import math
+# https://www.grc.nasa.gov/www/k-12/airplane/normal.html
+# generated with chatgpt, dutifully checked by me.
 
 def normal_shock_m2(M1: float, gamma: float = 1.4) -> float:
     """
@@ -16,8 +18,8 @@ def normal_shock_m2(M1: float, gamma: float = 1.4) -> float:
     M2 : float
         Downstream Mach number
     """
-    numerator   = 1 + 0.5*(gamma - 1)*M1**2
-    denominator = gamma*M1**2 - 0.5*(gamma - 1)
+    numerator   = (gamma - 1)*M1**2 + 2
+    denominator = 2*gamma*M1**2 - (gamma - 1)
     return math.sqrt(numerator/denominator)
 
 
@@ -37,7 +39,7 @@ def normal_shock_p2p1(M1: float, gamma: float = 1.4) -> float:
     p2p1 : float
         Pressure ratio P2/P1
     """
-    return 1.0 + 2.0*gamma/(gamma + 1.0)*(M1**2 - 1.0)
+    return (2*gamma*M1**2 - (gamma - 1))/(gamma + 1)
 
 
 def normal_shock_rho2rho1(M1: float, gamma: float = 1.4) -> float:

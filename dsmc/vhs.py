@@ -1,0 +1,1 @@
+# add in some functions for calculating vhs quantities later, mfp, viscoscity, collision rate, etc.

@@ -20,12 +20,12 @@ def interp_specs(file_path, height):
     return interp_values
 
 
-file = "conditions_gram_mass_v1.txt"
-height = 70 # km
+file = "conditions_gram_mass.txt"
+height = 110 # km
 values = interp_specs(file, height)
 
 # write a file with the temperature, N2, O2, N, O densities at the given height
-with open(f"conditions_gram_mass_v1_{height}.txt", "w") as f:
+with open(f"conditions_gram_mass_{height}.txt", "w") as f:
     f.write("Temperature_K, N2_nDensity_m3, O2_nDensity_m3, N_nDensity_m3, O_nDensity_m3\n")
     f.write(f"{values[0]:.5e}, {values[1]:.5e}, {values[2]:.5e}, {values[3]:.5e}, {values[4]:.5e}\n")
 

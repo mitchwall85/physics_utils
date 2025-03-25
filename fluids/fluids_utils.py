@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.optimize import fsolve
 from physics_utils.constants import AVOGADRO, GASCON, STEFBOLTZ
+from physics_utils.spec_props import blottner_data, species_masses
 
 
 def find_rh_conds(u_1, rho_1, P_1, gam):
@@ -110,4 +111,64 @@ def mass_mol_mix(nDen, Ms):
     frac = nDen/tot
     M_tot = np.sum(frac*Ms)
     return M_tot
+
+def blottner_fit(species, T):
+    """return viscosity of a species using blottner fit
+
+    Args:
+        species (str): species name
+        T (float): temperature, K
+
+    Returns:
+        float: viscosity, Pa-s
+    """
+    # get blottner data
+    data = blottner_data()
+
+    # calculate viscosity
+    A = data[species]["A"]
+    B = data[species]["B"]
+    C = data[species]["C"]
+    # eqn 2.27 from scalabrin
+    mu_s = 0.1*np.exp((A*np.ln(T) + B)*np.ln(T) + C)
+    return mu_s
+
+
+def visc_wilkie_blottner(list_spec, x, T):
+    """calculate viscosity using wilke's method
+
+    Args:
+        list_spec (list of strings): species in the mixture
+        x (list of floats): molar fractions of each species in the list, adds to 1
+        T (floats): temperature of mixture
+    """
+
+    mass = species_masses()
+
+    def phi(list_spec, x, spec_s):
+
+        mu_s = blottner_fit(spec_s, T)
+        M_s = mass[spec_s]
+
+        for spec_r in list_spec:
+
+            mu_r = blottner_fit(spec_r, T)
+            M_r = mass[spec_r]
+            # eqn 2.26 from scalabrin
+            numerator = (1 + np.sqrt(mu_s / mu_r) * (M_r / M_s)**(0.25))**2
+            denominator = np.sqrt(8 * (1 + M_s / M_r))
+            phi_s_r =  x * numerator / denominator
+
+    s = 0
+    for spec_s in list_spec:
+        mu_s = blottner_fit(list_spec[s], T)
+        phi_s = phi(list_spec, x, spec_s)
+
+        mu += x[s]*mu_s/phi_s
+        s += 1
+
+    return mu
+
+
+
 

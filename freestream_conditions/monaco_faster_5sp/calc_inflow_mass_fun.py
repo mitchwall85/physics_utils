@@ -27,8 +27,11 @@ def calc_inflow_mass_5sp(height):
         height (float): altitude in km above sea level
 
     Returns:
-        list: [temperature, N2 density, O2 density, N density, O density]
+        list: [temperature, N2 num density, O2 num density, N num density, O num density]
     """
+
+    if height > 200 or height < 0:
+        ValueError("Invalid altitude for this GRAM data.")
 
     file = r"/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/physics_utils/freestream_conditions/monaco_faster_5sp/conditions_gram_mass.txt"
     values = interp_specs(file, height)

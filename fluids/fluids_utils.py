@@ -130,7 +130,7 @@ def blottner_fit(species, T):
     B = data[species]["B"]
     C = data[species]["C"]
     # eqn 2.27 from scalabrin
-    mu_s = 0.1*np.exp((A*np.ln(T) + B)*np.ln(T) + C)
+    mu_s = 0.1*np.exp((A*np.log(T) + B)*np.log(T) + C)
     return mu_s
 
 
@@ -150,6 +150,8 @@ def visc_wilkie_blottner(list_spec, x, T):
         mu_s = blottner_fit(spec_s, T)
         M_s = mass[spec_s]
 
+        phi_s_r = 0
+        r = 0
         for spec_r in list_spec:
 
             mu_r = blottner_fit(spec_r, T)
@@ -157,12 +159,16 @@ def visc_wilkie_blottner(list_spec, x, T):
             # eqn 2.26 from scalabrin
             numerator = (1 + np.sqrt(mu_s / mu_r) * (M_r / M_s)**(0.25))**2
             denominator = np.sqrt(8 * (1 + M_s / M_r))
-            phi_s_r =  x * numerator / denominator
+            phi_s_r +=  x[r] * numerator / denominator
+            r += 1
+
+        return phi_s_r
 
     s = 0
+    mu = 0
     for spec_s in list_spec:
         mu_s = blottner_fit(list_spec[s], T)
-        phi_s = phi(list_spec, x, spec_s)
+        phi_s = phi(list_spec, x, list_spec[s])
 
         mu += x[s]*mu_s/phi_s
         s += 1

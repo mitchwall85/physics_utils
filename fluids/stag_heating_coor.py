@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.optimize import fsolve
-from physics_utils.constants import AVOGADRO, GASCON, STEFBOLTZ
+from physics_utils.constants import AVOGADRO, GASCON, STEFBOLTZ, BOLTZMANN
+from scipy.special import erf
 
 
 def bj_conv_heating(rho, v, rn):
@@ -116,3 +117,34 @@ def sg_rad_heating(rho, v, rn):
     b = 1.22
 
     return 100**2*C*rn**a*rho**b*f_v
+
+def bird_fm_heating(rho_inf, M_inf, rn, Ms, T, gamma, T_w):
+    """cited in singh 2016, eqn 3.13
+
+    Args:
+        rho (_type_): _description_
+
+    Returns:
+        _type_: _description_
+
+    """
+    # I HAVE NOT TESTED ANY OF THIS YET
+    """
+    prefactor = rho_inf * (np.sqrt(2 * BOLTZMANN * T / Ms))**3 * (1 / (4 * np.sqrt(np.pi)))
+    
+    A = (gamma / 2) * M_inf**2
+    B = gamma / (gamma - 1)
+    C = ((gamma + 1) / (2 * (gamma - 1))) * (T_w / T_inf)
+    
+    exp_term = np.exp(- (gamma / 2) * M_inf**2)
+    sqrt_pi_gamma_M = np.sqrt(np.pi * gamma / 2) * M_inf
+    erf_term = erf(np.sqrt(np.pi * gamma / 2) * M_inf)
+    
+    bracket = (A + B - C) * exp_term \
+              + sqrt_pi_gamma_M * (1 + erf_term) \
+              - 0.5 * exp_term
+
+    return prefactor * bracket
+
+    """
+

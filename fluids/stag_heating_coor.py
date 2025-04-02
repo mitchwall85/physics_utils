@@ -2,6 +2,12 @@ import numpy as np
 from scipy.optimize import fsolve
 from physics_utils.constants import AVOGADRO, GASCON, STEFBOLTZ, BOLTZMANN
 from scipy.special import erf
+import physics_utils.freestream_conditions.monaco_faster_5sp.calc_inflow_mass_fun as freestream_props
+import physics_utils.fluids.fluids_utils as fluids
+import physics_utils.spec_props as spec_props
+import importlib
+
+importlib.reload(freestream_props)
 
 
 def bj_conv_heating(rho, v, rn):
@@ -147,4 +153,62 @@ def bird_fm_heating(rho_inf, M_inf, rn, Ms, T, gamma, T_w):
     return prefactor * bracket
 
     """
+
+def ss_conv_heating(rho, v, rn, alpha, C_2, C_3, omega, alt):
+    """Singh and schwartzentruber 2016 convective heating correlation, as a function of altitude.
+    TODO: this should also be able to do arbitrary species
+
+    Args:
+        rho (float): freestream density, kg/m^3
+        v (float): freestream velocity, m/s
+        rn (float): nose radius, m
+        ADD IN THE REST OF THE INPUTS
+
+    Returns:
+        qc: convective heating rate, w/m^2
+    """
+    
+
+    # thermo props needed:
+    freestream, labels = freestream_props.calc_inflow_mass_5sp(alt, return_labels=True)
+    list_spec = labels[1:] # trim T label
+    # to find density of inflow, (part/m^3)*(mol/part)*(kg/mol) = n/nAvo*m
+    mass = spec_props.species_masses()
+    molar_masses = []
+    for spec in list_spec:
+        molar_masses.append(mass[spec]/1000)
+
+    rho = np.sum(np.array(freestream[1:])/AVOGADRO*molar_masses)  
+    cv_mix = fluids.spec_heat_mix("cv", 0, freestream[1:], molar_masses, [2, 2, 0, 0])
+    cp_mix = fluids.spec_heat_mix("cp", 0, freestream[1:], molar_masses, [2, 2, 0, 0])
+    molar_mass_mix = fluids.mass_mol_mix(freestream[1:], molar_masses)
+    gam = cp_mix/cv_mix
+    a = np.sqrt(gam*GASCON/molar_mass_mix*freestream[0])
+
+    # mol fractions
+    x = freestream[1:]/np.sum(freestream[1:])
+    x_dict = {} # create key-pairs for species mol fractions
+    for s in list_spec:
+        x_dict[s] = x[list_spec.index(s)]
+
+    # mass density of the freestream
+    rho = fluids.mass_mix_kgm3(freestream[1:], molar_masses)
+    # viscosity of the freestream
+    mu_inf = fluids.visc_wilkie_blottner(list_spec, x_dict, freestream[0])
+
+    # rarefaction parameters:
+    mach = v/a
+    Re_inf = rho*v*rn/mu_inf
+    W_r = mach**(2*omega)/Re_inf
+
+    # free molecular heat flux to normalize things:
+    q_fm= 0.5*rho*v**3
+    h_fm = q_fm/q_fm
+
+    q_bj = bj_conv_heating(rho, v, rn)
+    h_ct = q_bj/q_fm/(1 - alpha*W_r)
+    h_ss = h_ct + (h_fm - h_ct)*np.max([(W_r - C_2)/(W_r + C_3),0])
+    q_ss = h_ss*q_fm
+
+    return q_ss, W_r
 

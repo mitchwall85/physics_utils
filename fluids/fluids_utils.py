@@ -173,6 +173,16 @@ def visc_wilkie_blottner(list_spec, x, T):
 
     return mu
 
+def mfp_hs(d_ref, n):
+    """mean free path accoring to hard sphere model
+
+    Args:
+        d_ref (float): diameter of the molecule, m
+        n (float): number density, molecules/m^3
+    """
+
+    return 1/(np.sqrt(2)*np.pi*d_ref**2*n)
+
 
 
 

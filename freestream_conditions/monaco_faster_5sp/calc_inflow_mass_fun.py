@@ -20,7 +20,7 @@ def interp_specs(file_path, height):
     return np.array(interp_values)
 
 
-def calc_inflow_mass_5sp(height):
+def calc_inflow_mass_5sp(height, return_labels=False):
     """return freestream temperature and concetrations of 5sp air from EarthGram at a given height
 
     Args:
@@ -36,6 +36,10 @@ def calc_inflow_mass_5sp(height):
     file = r"/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/physics_utils/freestream_conditions/monaco_faster_5sp/conditions_gram_mass.txt"
     values = interp_specs(file, height)
 
-    return values
+    if return_labels:
+        labels = ["T", "N_2", "O_2", "N", "O"]
+        return values, labels
+    else:
+        return values
 
     

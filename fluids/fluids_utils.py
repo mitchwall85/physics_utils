@@ -73,6 +73,26 @@ def spec_heat_mix(cp_or_cv, T, nDen, Ms, n_r_dof):
 
     return c_spec # [J/kg/K]
 
+def ndens_to_mol_frac(nDens, list_spec):
+
+    """organize number densities into mole fractions dictionary
+
+    Args:
+        nDens (list of floats): number densities of a species
+        list_spec (list of strings): list
+
+    Returns:
+        x_dict: dictionary of mole fractions with species namess as keys
+    """
+
+    x = nDens/np.sum(nDens)
+    x_dict = {} # create key-pairs for species mol fractions
+    for s in list_spec:
+        x_dict[s] = x[list_spec.index(s)]
+
+    return x_dict
+
+
 def stef_bolts_qdot(eps, Tw):
     # get heat flux from stefan boltzmann law
     return eps*STEFBOLTZ*Tw**4

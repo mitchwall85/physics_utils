@@ -66,26 +66,28 @@ def plot_density_contours(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Parse EarthGRAM output and make contour plots.")
-    parser.add_argument("earthgram_file", help="Path to EarthGRAM text output file.")
-    parser.add_argument("--longitude", type=float, required=True, help="Longitude slice for contour plots.")
-    parser.add_argument(
-        "--pickle-name",
-        default="earthgram_records.pkl",
-        help="Name of the output pickle file in the same directory as the text file.",
-    )
-    args = parser.parse_args()
+    #parser = argparse.ArgumentParser(description="Parse EarthGRAM output and make contour plots.")
+    #parser.add_argument("earthgram_file", help="Path to EarthGRAM text output file.")
+    #parser.add_argument("--longitude", type=float, required=True, help="Longitude slice for contour plots.")
+    #parser.add_argument(
+    #    "--pickle-name",
+    #    default="earthgram_records.pkl",
+    #    help="Name of the output pickle file in the same directory as the text file.",
+    #)
+    #args = parser.parse_args()
+    earthgram_file = "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_LIST.md"
+    pickle_name = "earthgram_records.pkl"
 
-    data = read_earthgram_output(args.earthgram_file, pickle_name=args.pickle_name)
+    data = read_earthgram_output(earthgram_file, pickle_name=pickle_name)
 
-    longitude = args.longitude
+    longitude = 0.0
     if not any(longitude in lon_map for lon_map in data.values()):
         raise ValueError(f"Longitude {longitude} is not present in parsed data.")
 
     print(f"Parsed {len(data)} latitude entries.")
 
     # Show a robust example query from the first available lat/lon/alt point.
-    sample_lat = sorted(data.keys())[0]
+    sample_lat = sorted(data.keys())[-1]
     sample_altitudes = sorted(data[sample_lat][longitude].keys())
     sample_alt = sample_altitudes[0]
     sample_mean_density = data[sample_lat][longitude][sample_alt].get("mean density")

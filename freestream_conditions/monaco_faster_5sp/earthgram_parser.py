@@ -85,7 +85,6 @@ def _parse_record(record_text: str) -> dict[str, Any]:
         if not rows:
             continue
 
-        # Key-value pairs in a 4-column table: Field | Value | Field | Value
         if len(header) >= 4 and header[0].lower() == "field" and header[2].lower() == "field":
             for row in rows:
                 if len(row) >= 2:
@@ -94,50 +93,30 @@ def _parse_record(record_text: str) -> dict[str, Any]:
                     parsed[_normalize_label(row[2])] = _coerce_value(row[3])
             continue
 
-        # General table style: first column is row label, other columns are named metrics.
-        row_header = _normalize_label(header[0])
         col_headers = [_normalize_label(h) for h in header[1:]]
-
         for row in rows:
             if len(row) < 2:
                 continue
 
             row_name = _normalize_label(row[0])
-            values = row[1:]
-            for idx, value in enumerate(values):
+            for idx, value in enumerate(row[1:]):
                 if idx >= len(col_headers):
                     continue
                 col_name = col_headers[idx]
-                if row_header == "field":
-                    key = f"{row_name} {col_name}".strip()
-                else:
-                    key = f"{row_name} {col_name}".strip()
-                parsed[key] = _coerce_value(value)
+                parsed[f"{row_name} {col_name}".strip()] = _coerce_value(value)
 
     return parsed
 
 
-def read_earthgram_output(
-    file_path: str | Path,
-    pickle_name: str = "earthgram_records.pkl",
-) -> dict[float, dict[float, dict[float, dict[str, Any]]]]:
-    """Read an EarthGRAM output file and return/save a nested query dictionary.
-
-    Returned dictionary shape:
-    data[latitude][longitude][altitude][field_key] -> value
-    """
+def _read_single_earthgram_file(file_path: str | Path) -> dict[float, dict[float, dict[float, dict[str, Any]]]]:
     file_path = Path(file_path)
     text = file_path.read_text(encoding="utf-8")
-
-    # Ignore preamble and keep record sections only.
     raw_records = RECORD_SPLIT_PATTERN.split(text)
     records = [record for record in raw_records if "|" in record]
 
     data: dict[float, dict[float, dict[float, dict[str, Any]]]] = {}
-
     for record in records:
         parsed = _parse_record(record)
-
         latitude = parsed.get("latitude")
         longitude = parsed.get("longitude e")
         altitude = parsed.get("height above ref. ellipsoid")
@@ -148,10 +127,54 @@ def read_earthgram_output(
         lat_key = float(latitude)
         lon_key = float(longitude)
         alt_key = float(altitude)
-
         data.setdefault(lat_key, {}).setdefault(lon_key, {})[alt_key] = parsed
 
-    pickle_path = file_path.parent / pickle_name
+    return data
+
+
+def _merge_parsed_data(
+    base: dict[float, dict[float, dict[float, dict[str, Any]]]],
+    new_data: dict[float, dict[float, dict[float, dict[str, Any]]]],
+    altitude_override: float | None = None,
+) -> None:
+    for lat, lon_map in new_data.items():
+        for lon, alt_map in lon_map.items():
+            for alt, fields in alt_map.items():
+                target_alt = float(altitude_override) if altitude_override is not None else alt
+                base.setdefault(lat, {}).setdefault(lon, {})[target_alt] = fields
+
+
+def read_earthgram_output(
+    earthgram_files: str | Path | dict[float, str | Path],
+    pickle_name: str = "earthgram_records.pkl",
+) -> dict[float, dict[float, dict[float, dict[str, Any]]]]:
+    """Read one or many EarthGRAM outputs and save a nested query dictionary.
+
+    Parameters
+    ----------
+    earthgram_files
+        Either:
+        - path to one EarthGRAM output file, or
+        - mapping of altitude (km) -> EarthGRAM output file path.
+          Use this mapping when each EarthGRAM file contains one altitude slice.
+
+    Returns
+    -------
+    dict
+        data[latitude][longitude][altitude][field_key] -> value
+    """
+    data: dict[float, dict[float, dict[float, dict[str, Any]]]] = {}
+
+    if isinstance(earthgram_files, dict):
+        for altitude, file_path in earthgram_files.items():
+            parsed = _read_single_earthgram_file(file_path)
+            _merge_parsed_data(data, parsed, altitude_override=float(altitude))
+        pickle_path = Path(pickle_name)
+    else:
+        file_path = Path(earthgram_files)
+        data = _read_single_earthgram_file(file_path)
+        pickle_path = file_path.parent / pickle_name
+
     with pickle_path.open("wb") as handle:
         pickle.dump(data, handle)
 

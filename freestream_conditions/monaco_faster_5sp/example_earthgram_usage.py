@@ -75,7 +75,10 @@ def main() -> None:
     #    help="Name of the output pickle file in the same directory as the text file.",
     #)
     #args = parser.parse_args()
-    earthgram_file = "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_LIST.md"
+    earthgram_files = {}
+    earthgram_files[85] = "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_85km_LIST.md"
+    earthgram_files[95] = "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_95km_LIST.md"
+    earthgram_files[105] = "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_105km_LIST.md"
     pickle_name = "earthgram_records.pkl"
 
     data = read_earthgram_output(earthgram_file, pickle_name=pickle_name)

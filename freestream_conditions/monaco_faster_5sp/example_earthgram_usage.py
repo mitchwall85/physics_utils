@@ -5,6 +5,10 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import matplotlib
+
+# Use a headless backend so this script works on servers/CLI environments.
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -79,7 +83,16 @@ def main() -> None:
         raise ValueError(f"Longitude {longitude} is not present in parsed data.")
 
     print(f"Parsed {len(data)} latitude entries.")
-    print(f"Example query -> data[0.0][{longitude}][85.0]['mean density'] = {data[0.0][longitude][85.0]['mean density']}")
+
+    # Show a robust example query from the first available lat/lon/alt point.
+    sample_lat = sorted(data.keys())[0]
+    sample_altitudes = sorted(data[sample_lat][longitude].keys())
+    sample_alt = sample_altitudes[0]
+    sample_mean_density = data[sample_lat][longitude][sample_alt].get("mean density")
+    print(
+        "Example query -> "
+        f"data[{sample_lat}][{longitude}][{sample_alt}]['mean density'] = {sample_mean_density}"
+    )
 
     plot_density_contours(data, longitude)
 

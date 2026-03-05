@@ -95,9 +95,14 @@ def main() -> None:
 
     # Input format: altitude (km) -> EarthGRAM file for that altitude.
     earthgram_files: dict[float, str] = {}
+    earthgram_files[75] = "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_75km_LIST.md"
     earthgram_files[85] = "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_85km_LIST.md"
     earthgram_files[95] = "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_95km_LIST.md"
     earthgram_files[105] = "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_105km_LIST.md"
+    earthgram_files[115] = "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_115km_LIST.md"
+    earthgram_files[125] = "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_125km_LIST.md"
+    earthgram_files[135] = "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_135km_LIST.md"
+    earthgram_files[145] = "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_145km_LIST.md"
 
     data = read_earthgram_output(earthgram_files, pickle_name="earthgram_records.pkl")
 

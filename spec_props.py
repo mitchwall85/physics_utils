@@ -8,7 +8,7 @@ M_O = 16 # kg/kmol
 M_NO = 30 # kg/kmol
 M_e = 5.486e-4 # kg/kmol
 
-def species_masses():
+def species_masses(units="kg_per_mol"):
     """return dictionary of species masses"""
     masses = {
         "N_2": 28,
@@ -18,6 +18,10 @@ def species_masses():
         "NO": 30,
         "e": 5.486e-4
     }
+
+    if units == "kg_per_mol":
+        for key in masses:
+            masses[key] /= 1000
 
     return masses
 

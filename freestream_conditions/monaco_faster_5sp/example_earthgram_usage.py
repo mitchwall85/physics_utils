@@ -153,7 +153,7 @@ def main() -> None:
             raise ValueError(f"Longitude {normalized_lon} is not present in parsed data.")
 
     print(f"Parsed {len(data)} latitude entries.")
-    sample_lat = sorted(data.keys())[0]
+    sample_lat = sorted(data.keys())[-1]
     sample_lon = _normalize_longitude(longitude_order[0])
     sample_alt = sorted(data[sample_lat][sample_lon].keys())[0]
     sample_density = data[sample_lat][sample_lon][sample_alt].get("mean density")

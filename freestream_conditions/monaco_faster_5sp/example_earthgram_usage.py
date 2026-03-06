@@ -131,7 +131,7 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
     mean_min = positive_mean.min()
     mean_max = positive_mean.max()
     mean_levels = np.geomspace(mean_min, mean_max, 11)
-    mean_ticks = np.geomspace(mean_min, mean_max, 10)
+    mean_ticks = mean_levels
     std_valid = std_density[~np.isnan(std_density)]
     std_levels = np.linspace(std_valid.min(), std_valid.max(), 11) if std_valid.size else 11
 
@@ -172,22 +172,24 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
     cbar.set_label(r"Mean Density $(\mathrm{kg}/\mathrm{m}^3)$")
     cbar.set_ticks(mean_ticks)
     cbar.ax.set_yticklabels([f"{t:.1e}" for t in mean_ticks])
+    cbar.ax.invert_yaxis()
 
-        #####
+    #####
     # density -- transitional altitudes
     #####
     # pick max and min values that look nice
     trans_max = 5e-4
     trans_min = 5e-8
-    mean_trans_levels = np.geomspace(trans_min, trans_max, 11)
-    mean_trans_ticks = np.geomspace(trans_min, trans_max, 10)
+    mean_trans_levels = np.geomspace(trans_min, trans_max, 9)
+    mean_trans_ticks = mean_trans_levels
+    #mean_trans_ticks = np.geomspace(trans_min, trans_max, 10)
 
     fig_mean_trans, ax_mean_trans = plt.subplots(1, 1, figsize=(9.75, 5), constrained_layout=True)
 
     c1 = ax_mean_trans.contourf(x, y, mean_density, levels=mean_trans_levels, norm=LogNorm(vmin=trans_min, vmax=trans_max), cmap="inferno")
     # ylimits
     ax_mean_trans.set_ylim(70.0, 110.0)
-    mean_contour_levels = np.geomspace(trans_min, trans_max, 6)
+    mean_contour_levels = np.geomspace(trans_min, trans_max, 9)
     mean_lines = ax_mean_trans.contour(
         x,
         y,
@@ -219,6 +221,7 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
     cbar.set_label(r"Mean Density $(\mathrm{kg}/\mathrm{m}^3)$")
     cbar.set_ticks(mean_trans_ticks)
     cbar.ax.set_yticklabels([f"{t:.1e}" for t in mean_trans_ticks])
+    cbar.ax.invert_yaxis()
 
     #####
     # STD % contour

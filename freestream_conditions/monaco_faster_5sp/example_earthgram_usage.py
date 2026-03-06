@@ -84,6 +84,7 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.colors import LogNorm
+    from matplotlib.ticker import LogFormatterSciNotation
 
     normalized_longitudes = tuple(_normalize_longitude(lon) for lon in longitudes)
     data = _coalesce_longitudes(data)
@@ -98,25 +99,43 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
     if positive_mean.size == 0:
         raise ValueError("Mean density values are not positive; cannot use logarithmic color scale.")
 
-    mean_levels = np.geomspace(positive_mean.min(), positive_mean.max(), 20)
-    mean_ticks = np.geomspace(positive_mean.min(), positive_mean.max(), 10)
+    mean_min = positive_mean.min()
+    mean_max = positive_mean.max()
+    mean_levels = np.geomspace(mean_min, mean_max, 11)
+    mean_ticks = np.geomspace(mean_min, mean_max, 10)
     std_valid = std_density[~np.isnan(std_density)]
-    std_levels = np.linspace(std_valid.min(), std_valid.max(), 20) if std_valid.size else 20
+    std_levels = np.linspace(std_valid.min(), std_valid.max(), 11) if std_valid.size else 11
+    std_contour_levels = np.linspace(std_valid.min(), std_valid.max(), 6) if std_valid.size else 6
 
     fig_mean, ax_mean = plt.subplots(1, 1, figsize=(9.75, 5), constrained_layout=True)
 
-    c1 = ax_mean.contourf(x, y, mean_density, levels=mean_levels, norm=LogNorm(), cmap="inferno")
-    ax_mean.contour(x, y, mean_density, levels=mean_levels[::2], colors="k", linewidths=0.5, alpha=0.55)
-    ax_mean.set_title(f"Mean Density (log scale), longitudes={normalized_longitudes}")
-    ax_mean.set_xlabel("Stitched (lat, long)")
+    c1 = ax_mean.contourf(x, y, mean_density, levels=mean_levels, norm=LogNorm(vmin=mean_min, vmax=mean_max), cmap="inferno")
+    mean_contour_levels = np.geomspace(mean_min, mean_max, 6)
+    mean_lines = ax_mean.contour(
+        x,
+        y,
+        mean_density,
+        levels=mean_contour_levels,
+        colors="white",
+        linewidths=1.0,
+        alpha=1.0,
+    )
+    ax_mean.clabel(mean_lines, mean_contour_levels, inline=True, fontsize=10, fmt="%.1e")
+    ax_mean.set_title(f"Mean Density Along Latitude Sweep")
+    ax_mean.set_xlabel("Latitude Sweep")
     ax_mean.set_ylabel(r"Altitude $(\mathrm{km})$")
-    fig_mean.colorbar(c1, ax=ax_mean, label=r"Mean Density $(\mathrm{kg}/\mathrm{m}^3)$", ticks=mean_ticks)
+    # --- colorbar with visible ticks ---
+    cbar = fig_mean.colorbar(c1, ax=ax_mean)
+    cbar.set_label(r"Mean Density $(\mathrm{kg}/\mathrm{m}^3)$")
+    cbar.set_ticks(mean_ticks)
+    cbar.ax.set_yticklabels([f"{t:.1e}" for t in mean_ticks])
+
 
     fig_std, ax_std = plt.subplots(1, 1, figsize=(9.75, 5), constrained_layout=True)
     c2 = ax_std.contourf(x, y, std_density, levels=std_levels, cmap="inferno")
-    ax_std.contour(x, y, std_density, levels=10, colors="k", linewidths=0.5, alpha=0.55)
-    ax_std.set_title(f"Standard Deviation Density (%), longitudes={normalized_longitudes}")
-    ax_std.set_xlabel("Stitched (lat, long)")
+    #ax_std.contour(x, y, std_density, levels=std_contour_levels, colors="white", linewidths=1, alpha=1)
+    ax_std.set_title(r"Standard Deviation Density [$\sigma/\rho$] Along Latitude Sweep")
+    ax_std.set_xlabel("Latitude Sweep")
     ax_std.set_ylabel(r"Altitude $(\mathrm{km})$")
     fig_std.colorbar(c2, ax=ax_std, label=r"Standard Deviation Density $(\%)$")
 
@@ -126,6 +145,7 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
     for ax in (ax_mean, ax_std):
         ax.set_xticks(tick_positions)
         ax.set_xticklabels([x_labels[idx] for idx in tick_positions], rotation=45, ha="right")
+        ax.grid(True, which="major", axis="both", linestyle=":", color="white", linewidth=0.45, alpha=0.75)
 
     mean_output_path = Path("earthgram_mean_density_contours_lon_0_then_180.png")
     std_output_path = Path("earthgram_std_density_contours_lon_0_then_180.png")
@@ -140,6 +160,7 @@ def main() -> None:
 
     # Input format: altitude (km) -> EarthGRAM file for that altitude.
     earthgram_files: dict[float, str] = {
+        65.0: "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_65km_LIST.md",
         75.0: "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_75km_LIST.md",
         85.0: "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_85km_LIST.md",
         95.0: "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_95km_LIST.md",

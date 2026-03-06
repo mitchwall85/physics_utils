@@ -39,7 +39,7 @@ def _build_grids(
     data: EarthgramData,
     longitudes: tuple[float, ...],
     value_key: str,
-) -> tuple[object, object, object, list[str]]:
+) -> tuple[object, object, object, list[tuple[float, float]], list[str]]:
     import numpy as np
 
     latitudes = sorted(data.keys())
@@ -68,9 +68,7 @@ def _build_grids(
 
     ordering.sort(key=lambda item: item[0])
     x_pairs: list[tuple[float, float]] = [pair for _, pair in ordering]
-    x_labels: list[str] = []
-    for lat, longitude in x_pairs:
-        x_labels.append(f"({lat:g}\N{DEGREE SIGN}, {longitude:g}\N{DEGREE SIGN})")
+    x_labels: list[str] = [f"({lat:g}\N{DEGREE SIGN}, {longitude:g}\N{DEGREE SIGN})" for lat, longitude in x_pairs]
 
     z = np.full((len(altitudes), len(x_pairs)), np.nan)
 
@@ -86,21 +84,40 @@ def _build_grids(
 
     x_positions = np.arange(len(x_pairs), dtype=float)
     x, y = np.meshgrid(x_positions, altitudes)
-    return x, y, z, x_labels
+    return x, y, z, x_pairs, x_labels
 
-def rename_x_label(x_labels: list[str]) -> list[str]:
-    mapping = {
-        '(90°, 0°)': "North Pole",
-        '(-90°, 180°)': "South Pole",
-        '(0°, 180°)': "Equator",
-        '(0°, 0°)': "Equator",
-    }
 
-    for i, name in enumerate(x_labels):
-        if name in mapping:
-            x_labels[i] = mapping[name]
+def _format_sweep_label(latitude: float, longitude: float, tolerance: float = 1e-6) -> str:
+    if abs(latitude - 90.0) <= tolerance and abs(longitude - 0.0) <= tolerance:
+        return "North Pole"
+    if abs(latitude + 90.0) <= tolerance and abs(longitude - 180.0) <= tolerance:
+        return "South Pole"
+    if abs(latitude) <= tolerance and (abs(longitude - 0.0) <= tolerance or abs(longitude - 180.0) <= tolerance):
+        return "Equator"
+    return f"({latitude:g}\N{DEGREE SIGN}, {longitude:g}\N{DEGREE SIGN})"
 
-    return x_labels
+
+def _is_30_degree_multiple(latitude: float, tolerance: float = 1e-6) -> bool:
+    return abs(latitude / 30.0 - round(latitude / 30.0)) <= tolerance
+
+
+def _build_tick_positions(
+    x_pairs: list[tuple[float, float]],
+    preferred_longitude: float,
+) -> list[int]:
+    tick_positions = [
+        idx
+        for idx, (lat, lon) in enumerate(x_pairs)
+        if abs(lon - preferred_longitude) <= 1e-6 and _is_30_degree_multiple(lat)
+    ]
+
+    if not tick_positions:
+        tick_positions = [idx for idx, (lat, _) in enumerate(x_pairs) if _is_30_degree_multiple(lat)]
+
+    if not tick_positions:
+        tick_positions = list(range(0, len(x_pairs), max(1, len(x_pairs) // 12)))
+
+    return sorted(set(tick_positions))
 
 
 def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (0.0, 180.0)) -> None:
@@ -115,9 +132,9 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
     normalized_longitudes = tuple(_normalize_longitude(lon) for lon in longitudes)
     data = _coalesce_longitudes(data)
 
-    x, y, mean_density, x_labels = _build_grids(data, normalized_longitudes, "mean density")
-    x_labels = rename_x_label(x_labels) # add in north pole, equator, etc.
-    _, _, std_density, _ = _build_grids(data, normalized_longitudes, "standard deviations density")
+    x, y, mean_density, x_pairs, _ = _build_grids(data, normalized_longitudes, "mean density")
+    _, _, std_density, _, _ = _build_grids(data, normalized_longitudes, "standard deviations density")
+    x_labels = [_format_sweep_label(lat, lon) for lat, lon in x_pairs]
 
     if np.all(np.isnan(mean_density)):
         raise ValueError("No mean density data found for the selected longitudes.")
@@ -171,9 +188,7 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
     ax_std.set_ylabel(r"Altitude $(\mathrm{km})$")
     fig_std.colorbar(c2, ax=ax_std, label=r"Standard Deviation Density $(\%)$")
 
-    # Keep tick count readable while preserving the stitched ordering.
-    tick_step = max(1, len(x_labels) // 12)
-    tick_positions = list(range(0, len(x_labels), tick_step))
+    tick_positions = _build_tick_positions(x_pairs, preferred_longitude=normalized_longitudes[0])
     for ax in (ax_mean, ax_std):
         ax.set_xticks(tick_positions)
         ax.set_xticklabels([x_labels[idx] for idx in tick_positions], rotation=45, ha="right")

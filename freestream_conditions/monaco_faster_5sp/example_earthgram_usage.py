@@ -101,37 +101,41 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
 
     mean_min = positive_mean.min()
     mean_max = positive_mean.max()
-    mean_levels = np.geomspace(mean_min, mean_max, 20)
+    mean_levels = np.geomspace(mean_min, mean_max, 11)
     mean_ticks = np.geomspace(mean_min, mean_max, 10)
     std_valid = std_density[~np.isnan(std_density)]
-    std_levels = np.linspace(std_valid.min(), std_valid.max(), 20) if std_valid.size else 20
+    std_levels = np.linspace(std_valid.min(), std_valid.max(), 11) if std_valid.size else 11
+    std_contour_levels = np.linspace(std_valid.min(), std_valid.max(), 6) if std_valid.size else 6
 
     fig_mean, ax_mean = plt.subplots(1, 1, figsize=(9.75, 5), constrained_layout=True)
 
-    c1 = ax_mean.contourf(x, y, mean_density, levels=mean_levels, norm=LogNorm(), cmap="inferno")
-    mean_contour_levels = np.geomspace(mean_min, mean_max, 8)
+    c1 = ax_mean.contourf(x, y, mean_density, levels=mean_levels, norm=LogNorm(vmin=mean_min, vmax=mean_max), cmap="inferno")
+    mean_contour_levels = np.geomspace(mean_min, mean_max, 6)
     mean_lines = ax_mean.contour(
         x,
         y,
         mean_density,
         levels=mean_contour_levels,
         colors="white",
-        linewidths=0.4,
-        alpha=0.7,
+        linewidths=1.0,
+        alpha=1.0,
     )
-    ax_mean.clabel(mean_lines, mean_contour_levels, inline=True, fontsize=7, fmt="%.2e")
-    ax_mean.set_title(f"Mean Density (log scale), longitudes={normalized_longitudes}")
-    ax_mean.set_xlabel("Stitched (lat, long)")
+    ax_mean.clabel(mean_lines, mean_contour_levels, inline=True, fontsize=10, fmt="%.1e")
+    ax_mean.set_title(f"Mean Density Along Latitude Sweep")
+    ax_mean.set_xlabel("Latitude Sweep")
     ax_mean.set_ylabel(r"Altitude $(\mathrm{km})$")
-    cbar = fig_mean.colorbar(c1, ax=ax_mean, label=r"Mean Density $(\mathrm{kg}/\mathrm{m}^3)$", ticks=mean_ticks)
-    cbar.formatter = LogFormatterSciNotation()
-    cbar.update_ticks()
+    # --- colorbar with visible ticks ---
+    cbar = fig_mean.colorbar(c1, ax=ax_mean)
+    cbar.set_label(r"Mean Density $(\mathrm{kg}/\mathrm{m}^3)$")
+    cbar.set_ticks(mean_ticks)
+    cbar.ax.set_yticklabels([f"{t:.1e}" for t in mean_ticks])
+
 
     fig_std, ax_std = plt.subplots(1, 1, figsize=(9.75, 5), constrained_layout=True)
     c2 = ax_std.contourf(x, y, std_density, levels=std_levels, cmap="inferno")
-    ax_std.contour(x, y, std_density, levels=10, colors="k", linewidths=0.5, alpha=0.55)
-    ax_std.set_title(f"Standard Deviation Density (%), longitudes={normalized_longitudes}")
-    ax_std.set_xlabel("Stitched (lat, long)")
+    #ax_std.contour(x, y, std_density, levels=std_contour_levels, colors="white", linewidths=1, alpha=1)
+    ax_std.set_title(r"Standard Deviation Density [$\sigma/\rho$] Along Latitude Sweep")
+    ax_std.set_xlabel("Latitude Sweep")
     ax_std.set_ylabel(r"Altitude $(\mathrm{km})$")
     fig_std.colorbar(c2, ax=ax_std, label=r"Standard Deviation Density $(\%)$")
 
@@ -156,6 +160,7 @@ def main() -> None:
 
     # Input format: altitude (km) -> EarthGRAM file for that altitude.
     earthgram_files: dict[float, str] = {
+        65.0: "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_65km_LIST.md",
         75.0: "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_75km_LIST.md",
         85.0: "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_85km_LIST.md",
         95.0: "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_95km_LIST.md",

@@ -84,6 +84,7 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.colors import LogNorm
+    from matplotlib.ticker import LogFormatterSciNotation
 
     normalized_longitudes = tuple(_normalize_longitude(lon) for lon in longitudes)
     data = _coalesce_longitudes(data)
@@ -98,19 +99,33 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
     if positive_mean.size == 0:
         raise ValueError("Mean density values are not positive; cannot use logarithmic color scale.")
 
-    mean_levels = np.geomspace(positive_mean.min(), positive_mean.max(), 20)
-    mean_ticks = np.geomspace(positive_mean.min(), positive_mean.max(), 10)
+    mean_min = positive_mean.min()
+    mean_max = positive_mean.max()
+    mean_levels = np.geomspace(mean_min, mean_max, 20)
+    mean_ticks = np.geomspace(mean_min, mean_max, 10)
     std_valid = std_density[~np.isnan(std_density)]
     std_levels = np.linspace(std_valid.min(), std_valid.max(), 20) if std_valid.size else 20
 
     fig_mean, ax_mean = plt.subplots(1, 1, figsize=(9.75, 5), constrained_layout=True)
 
     c1 = ax_mean.contourf(x, y, mean_density, levels=mean_levels, norm=LogNorm(), cmap="inferno")
-    ax_mean.contour(x, y, mean_density, levels=mean_levels[::2], colors="k", linewidths=0.5, alpha=0.55)
+    mean_contour_levels = np.geomspace(mean_min, mean_max, 8)
+    mean_lines = ax_mean.contour(
+        x,
+        y,
+        mean_density,
+        levels=mean_contour_levels,
+        colors="white",
+        linewidths=0.4,
+        alpha=0.7,
+    )
+    ax_mean.clabel(mean_lines, mean_contour_levels, inline=True, fontsize=7, fmt="%.2e")
     ax_mean.set_title(f"Mean Density (log scale), longitudes={normalized_longitudes}")
     ax_mean.set_xlabel("Stitched (lat, long)")
     ax_mean.set_ylabel(r"Altitude $(\mathrm{km})$")
-    fig_mean.colorbar(c1, ax=ax_mean, label=r"Mean Density $(\mathrm{kg}/\mathrm{m}^3)$", ticks=mean_ticks)
+    cbar = fig_mean.colorbar(c1, ax=ax_mean, label=r"Mean Density $(\mathrm{kg}/\mathrm{m}^3)$", ticks=mean_ticks)
+    cbar.formatter = LogFormatterSciNotation()
+    cbar.update_ticks()
 
     fig_std, ax_std = plt.subplots(1, 1, figsize=(9.75, 5), constrained_layout=True)
     c2 = ax_std.contourf(x, y, std_density, levels=std_levels, cmap="inferno")
@@ -126,6 +141,7 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
     for ax in (ax_mean, ax_std):
         ax.set_xticks(tick_positions)
         ax.set_xticklabels([x_labels[idx] for idx in tick_positions], rotation=45, ha="right")
+        ax.grid(True, which="major", axis="both", linestyle=":", color="white", linewidth=0.45, alpha=0.75)
 
     mean_output_path = Path("earthgram_mean_density_contours_lon_0_then_180.png")
     std_output_path = Path("earthgram_std_density_contours_lon_0_then_180.png")

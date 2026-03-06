@@ -88,6 +88,20 @@ def _build_grids(
     x, y = np.meshgrid(x_positions, altitudes)
     return x, y, z, x_labels
 
+def rename_x_label(x_labels: list[str]) -> list[str]:
+    mapping = {
+        '(90°, 0°)': "North Pole",
+        '(-90°, 180°)': "South Pole",
+        '(0°, 180°)': "Equator",
+        '(0°, 0°)': "Equator",
+    }
+
+    for i, name in enumerate(x_labels):
+        if name in mapping:
+            x_labels[i] = mapping[name]
+
+    return x_labels
+
 
 def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (0.0, 180.0)) -> None:
     import matplotlib
@@ -102,6 +116,7 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
     data = _coalesce_longitudes(data)
 
     x, y, mean_density, x_labels = _build_grids(data, normalized_longitudes, "mean density")
+    x_labels = rename_x_label(x_labels) # add in north pole, equator, etc.
     _, _, std_density, _ = _build_grids(data, normalized_longitudes, "standard deviations density")
 
     if np.all(np.isnan(mean_density)):
@@ -117,7 +132,6 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
     mean_ticks = np.geomspace(mean_min, mean_max, 10)
     std_valid = std_density[~np.isnan(std_density)]
     std_levels = np.linspace(std_valid.min(), std_valid.max(), 11) if std_valid.size else 11
-    std_contour_levels = np.linspace(std_valid.min(), std_valid.max(), 6) if std_valid.size else 6
 
     fig_mean, ax_mean = plt.subplots(1, 1, figsize=(9.75, 5), constrained_layout=True)
 
@@ -145,7 +159,6 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
 
     fig_std, ax_std = plt.subplots(1, 1, figsize=(9.75, 5), constrained_layout=True)
     c2 = ax_std.contourf(x, y, std_density, levels=std_levels, cmap="inferno")
-    #ax_std.contour(x, y, std_density, levels=std_contour_levels, colors="white", linewidths=1, alpha=1)
     ax_std.set_title(r"Standard Deviation Density [$\sigma/\rho$] Along Latitude Sweep")
     ax_std.set_xlabel("Latitude Sweep")
     ax_std.set_ylabel(r"Altitude $(\mathrm{km})$")

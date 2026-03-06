@@ -146,7 +146,14 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
         linewidths=1.0,
         alpha=1.0,
     )
-    ax_mean.clabel(mean_lines, mean_contour_levels, inline=True, fontsize=10, fmt="%.1e")
+    ax_mean.clabel(
+    mean_lines,
+    mean_contour_levels,
+    inline=True,
+    fontsize=10,
+    fmt="%.1e",
+    manual=[(10,120), (20,100), (30,90), (40,40)] # spaces out labels
+    )
     ax_mean.set_title(f"Mean Density Along Latitude Sweep")
     ax_mean.set_xlabel("Latitude Sweep")
     ax_mean.set_ylabel(r"Altitude $(\mathrm{km})$")
@@ -159,7 +166,7 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
 
     fig_std, ax_std = plt.subplots(1, 1, figsize=(9.75, 5), constrained_layout=True)
     c2 = ax_std.contourf(x, y, std_density, levels=std_levels, cmap="inferno")
-    ax_std.set_title(r"Standard Deviation Density [$\sigma/\rho$] Along Latitude Sweep")
+    ax_std.set_title(r"Standard Deviation Density Along Latitude Sweep: $\sigma/\langle \rho \rangle$")
     ax_std.set_xlabel("Latitude Sweep")
     ax_std.set_ylabel(r"Altitude $(\mathrm{km})$")
     fig_std.colorbar(c2, ax=ax_std, label=r"Standard Deviation Density $(\%)$")
@@ -170,10 +177,10 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
     for ax in (ax_mean, ax_std):
         ax.set_xticks(tick_positions)
         ax.set_xticklabels([x_labels[idx] for idx in tick_positions], rotation=45, ha="right")
-        ax.grid(True, which="major", axis="both", linestyle=":", color="white", linewidth=0.45, alpha=0.75)
+        ax.grid(True, which="major", axis="both", linestyle=":", color="white", linewidth=1.5, alpha=0.5)
 
-    mean_output_path = Path("earthgram_mean_density_contours_lon_0_then_180.png")
-    std_output_path = Path("earthgram_std_density_contours_lon_0_then_180.png")
+    mean_output_path = Path("earthgram_mean_density.png")
+    std_output_path = Path("earthgram_std_density.png")
     fig_mean.savefig(mean_output_path, dpi=200)
     fig_std.savefig(std_output_path, dpi=200)
     print(f"Saved contour figure: {mean_output_path}")
@@ -185,6 +192,12 @@ def main() -> None:
 
     # Input format: altitude (km) -> EarthGRAM file for that altitude.
     earthgram_files: dict[float, str] = {
+         5.0: "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_5km_LIST.md",
+        15.0: "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_15km_LIST.md",
+        25.0: "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_25km_LIST.md",
+        35.0: "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_35km_LIST.md",
+        45.0: "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_45km_LIST.md",
+        55.0: "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_55km_LIST.md",
         65.0: "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_65km_LIST.md",
         75.0: "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_75km_LIST.md",
         85.0: "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep/lat_sweep_85km_LIST.md",

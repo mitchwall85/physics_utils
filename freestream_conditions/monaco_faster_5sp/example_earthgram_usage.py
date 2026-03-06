@@ -52,13 +52,25 @@ def _build_grids(
         }
     )
 
-    x_pairs: list[tuple[float, float]] = []
+    ordering: list[tuple[float, tuple[float, float]]] = []
+    for lat in latitudes:
+        for longitude in longitudes:
+            lon_slice = data[lat].get(longitude, {})
+            if not lon_slice:
+                continue
+            record_numbers = [
+                fields.get("record number")
+                for fields in lon_slice.values()
+                if fields.get("record number") is not None
+            ]
+            record_order = min(float(rec) for rec in record_numbers) if record_numbers else float("inf")
+            ordering.append((record_order, (lat, longitude)))
+
+    ordering.sort(key=lambda item: item[0])
+    x_pairs: list[tuple[float, float]] = [pair for _, pair in ordering]
     x_labels: list[str] = []
-    for longitude in longitudes:
-        for lat in latitudes:
-            if longitude in data[lat]:
-                x_pairs.append((lat, longitude))
-                x_labels.append(f"({lat:g}\N{DEGREE SIGN}, {longitude:g}\N{DEGREE SIGN})")
+    for lat, longitude in x_pairs:
+        x_labels.append(f"({lat:g}\N{DEGREE SIGN}, {longitude:g}\N{DEGREE SIGN})")
 
     z = np.full((len(altitudes), len(x_pairs)), np.nan)
 

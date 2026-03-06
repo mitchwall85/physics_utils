@@ -9,6 +9,7 @@ from typing import Any
 
 
 RECORD_SPLIT_PATTERN = re.compile(r"^\s*##\s*Record\s*#\d+", re.IGNORECASE | re.MULTILINE)
+RECORD_HEADER_PATTERN = re.compile(r"^\s*##\s*Record\s*#\s*(\d+)", re.IGNORECASE | re.MULTILINE)
 NUMERIC_PATTERN = re.compile(r"^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$")
 
 
@@ -111,12 +112,25 @@ def _parse_record(record_text: str) -> dict[str, Any]:
 def _read_single_earthgram_file(file_path: str | Path) -> dict[float, dict[float, dict[float, dict[str, Any]]]]:
     file_path = Path(file_path)
     text = file_path.read_text(encoding="utf-8")
-    raw_records = RECORD_SPLIT_PATTERN.split(text)
-    records = [record for record in raw_records if "|" in record]
+    headers = list(RECORD_HEADER_PATTERN.finditer(text))
+    records: list[tuple[int, str]] = []
+    for idx, header_match in enumerate(headers):
+        record_id = int(header_match.group(1))
+        start = header_match.end()
+        end = headers[idx + 1].start() if idx + 1 < len(headers) else len(text)
+        record_text = text[start:end]
+        if "|" not in record_text:
+            continue
+        records.append((record_id, record_text))
+
+    if not records:
+        raw_records = RECORD_SPLIT_PATTERN.split(text)
+        records = [(idx + 1, record) for idx, record in enumerate(raw_records) if "|" in record]
 
     data: dict[float, dict[float, dict[float, dict[str, Any]]]] = {}
-    for record in records:
-        parsed = _parse_record(record)
+    for record_id, record_text in records:
+        parsed = _parse_record(record_text)
+        parsed["record number"] = float(record_id)
         latitude = parsed.get("latitude")
         longitude = parsed.get("longitude e")
         altitude = parsed.get("height above ref. ellipsoid")

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import math
+import matplotlib.patheffects as pe
 
 try:
     from .earthgram_parser import read_earthgram_output
@@ -39,7 +41,7 @@ def _build_grids(
     data: EarthgramData,
     longitudes: tuple[float, ...],
     value_key: str,
-) -> tuple[object, object, object, list[tuple[float, float]], list[str]]:
+) -> tuple[object, object, object, list[str]]:
     import numpy as np
 
     latitudes = sorted(data.keys())
@@ -68,7 +70,9 @@ def _build_grids(
 
     ordering.sort(key=lambda item: item[0])
     x_pairs: list[tuple[float, float]] = [pair for _, pair in ordering]
-    x_labels: list[str] = [f"({lat:g}\N{DEGREE SIGN}, {longitude:g}\N{DEGREE SIGN})" for lat, longitude in x_pairs]
+    x_labels: list[str] = []
+    for lat, longitude in x_pairs:
+        x_labels.append(f"({lat:g}\N{DEGREE SIGN}, {longitude:g}\N{DEGREE SIGN})")
 
     z = np.full((len(altitudes), len(x_pairs)), np.nan)
 
@@ -84,40 +88,21 @@ def _build_grids(
 
     x_positions = np.arange(len(x_pairs), dtype=float)
     x, y = np.meshgrid(x_positions, altitudes)
-    return x, y, z, x_pairs, x_labels
+    return x, y, z, x_labels
 
+def rename_x_label(x_labels: list[str]) -> list[str]:
+    mapping = {
+        '(90°, 0°)': "North Pole",
+        '(-90°, 180°)': "South Pole",
+        '(0°, 180°)': "Equator",
+        '(0°, 0°)': "Equator",
+    }
 
-def _format_sweep_label(latitude: float, longitude: float, tolerance: float = 1e-6) -> str:
-    if abs(latitude - 90.0) <= tolerance and abs(longitude - 0.0) <= tolerance:
-        return "North Pole"
-    if abs(latitude + 90.0) <= tolerance and abs(longitude - 180.0) <= tolerance:
-        return "South Pole"
-    if abs(latitude) <= tolerance and (abs(longitude - 0.0) <= tolerance or abs(longitude - 180.0) <= tolerance):
-        return "Equator"
-    return f"({latitude:g}\N{DEGREE SIGN}, {longitude:g}\N{DEGREE SIGN})"
+    for i, name in enumerate(x_labels):
+        if name in mapping:
+            x_labels[i] = mapping[name]
 
-
-def _is_30_degree_multiple(latitude: float, tolerance: float = 1e-6) -> bool:
-    return abs(latitude / 30.0 - round(latitude / 30.0)) <= tolerance
-
-
-def _build_tick_positions(
-    x_pairs: list[tuple[float, float]],
-    preferred_longitude: float,
-) -> list[int]:
-    tick_positions = [
-        idx
-        for idx, (lat, lon) in enumerate(x_pairs)
-        if abs(lon - preferred_longitude) <= 1e-6 and _is_30_degree_multiple(lat)
-    ]
-
-    if not tick_positions:
-        tick_positions = [idx for idx, (lat, _) in enumerate(x_pairs) if _is_30_degree_multiple(lat)]
-
-    if not tick_positions:
-        tick_positions = list(range(0, len(x_pairs), max(1, len(x_pairs) // 12)))
-
-    return sorted(set(tick_positions))
+    return x_labels
 
 
 def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (0.0, 180.0)) -> None:
@@ -132,9 +117,9 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
     normalized_longitudes = tuple(_normalize_longitude(lon) for lon in longitudes)
     data = _coalesce_longitudes(data)
 
-    x, y, mean_density, x_pairs, _ = _build_grids(data, normalized_longitudes, "mean density")
-    _, _, std_density, _, _ = _build_grids(data, normalized_longitudes, "standard deviations density")
-    x_labels = [_format_sweep_label(lat, lon) for lat, lon in x_pairs]
+    x, y, mean_density, x_labels = _build_grids(data, normalized_longitudes, "mean density")
+    x_labels = rename_x_label(x_labels) # add in north pole, equator, etc.
+    _, _, std_density, _ = _build_grids(data, normalized_longitudes, "standard deviations density")
 
     if np.all(np.isnan(mean_density)):
         raise ValueError("No mean density data found for the selected longitudes.")
@@ -150,6 +135,9 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
     std_valid = std_density[~np.isnan(std_density)]
     std_levels = np.linspace(std_valid.min(), std_valid.max(), 11) if std_valid.size else 11
 
+    #####
+    # density -- full altitude
+    #####
     fig_mean, ax_mean = plt.subplots(1, 1, figsize=(9.75, 5), constrained_layout=True)
 
     c1 = ax_mean.contourf(x, y, mean_density, levels=mean_levels, norm=LogNorm(vmin=mean_min, vmax=mean_max), cmap="inferno")
@@ -163,16 +151,21 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
         linewidths=1.0,
         alpha=1.0,
     )
-    ax_mean.clabel(
-    mean_lines,
-    mean_contour_levels,
-    inline=True,
-    fontsize=10,
-    fmt="%.1e",
-    manual=[(10,120), (20,100), (30,90), (40,40)] # spaces out labels
+    labels = ax_mean.clabel(
+        mean_lines,
+        inline=False,
+        fontsize=10,
+        fmt="%.1e"
     )
+
+    for txt in labels:
+        txt.set_color("white")
+        txt.set_path_effects([
+            pe.Stroke(linewidth=2.5, foreground="black"),
+            pe.Normal()
+    ])
     ax_mean.set_title(f"Mean Density Along Latitude Sweep")
-    ax_mean.set_xlabel("Latitude Sweep")
+    ax_mean.set_xlabel(r"Latitude Sweep $(lat., lon.)$")
     ax_mean.set_ylabel(r"Altitude $(\mathrm{km})$")
     # --- colorbar with visible ticks ---
     cbar = fig_mean.colorbar(c1, ax=ax_mean)
@@ -180,25 +173,93 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
     cbar.set_ticks(mean_ticks)
     cbar.ax.set_yticklabels([f"{t:.1e}" for t in mean_ticks])
 
+        #####
+    # density -- transitional altitudes
+    #####
+    # pick max and min values that look nice
+    trans_max = 5e-4
+    trans_min = 5e-8
+    mean_trans_levels = np.geomspace(trans_min, trans_max, 11)
+    mean_trans_ticks = np.geomspace(trans_min, trans_max, 10)
+
+    fig_mean_trans, ax_mean_trans = plt.subplots(1, 1, figsize=(9.75, 5), constrained_layout=True)
+
+    c1 = ax_mean_trans.contourf(x, y, mean_density, levels=mean_trans_levels, norm=LogNorm(vmin=trans_min, vmax=trans_max), cmap="inferno")
+    # ylimits
+    ax_mean_trans.set_ylim(70.0, 110.0)
+    mean_contour_levels = np.geomspace(trans_min, trans_max, 6)
+    mean_lines = ax_mean_trans.contour(
+        x,
+        y,
+        mean_density,
+        levels=mean_contour_levels,
+        colors="white",
+        linewidths=1.0,
+        alpha=1.0,
+    )
+    labels = ax_mean_trans.clabel(
+        mean_lines,
+        inline=False,
+        fontsize=10,
+        fmt="%.1e"
+    )
+
+    for txt in labels:
+        txt.set_color("white")
+        txt.set_path_effects([
+            pe.Stroke(linewidth=2.5, foreground="black"),
+            pe.Normal()
+    ])
+
+    ax_mean_trans.set_title(f"Mean Density Along Latitude Sweep")
+    ax_mean_trans.set_xlabel(r"Latitude Sweep $(lat., lon.)$")
+    ax_mean_trans.set_ylabel(r"Altitude $(\mathrm{km})$")
+    # --- colorbar with visible ticks ---
+    cbar = fig_mean_trans.colorbar(c1, ax=ax_mean_trans)
+    cbar.set_label(r"Mean Density $(\mathrm{kg}/\mathrm{m}^3)$")
+    cbar.set_ticks(mean_trans_ticks)
+    cbar.ax.set_yticklabels([f"{t:.1e}" for t in mean_trans_ticks])
+
+    #####
+    # STD % contour
+    #####
+    # Find max value
+    vmax = np.nanmax(std_density)
+
+    # Round up to a nice number
+    # (adjust the power if needed)
+    scale = 10 ** math.floor(math.log10(vmax))
+    vmax_round = math.floor(vmax / scale) * scale
+
+    # Number of contour bands
+    n_levels = 8
+
+    # Create levels
+    std_levels = np.linspace(0, vmax_round, n_levels + 1)
 
     fig_std, ax_std = plt.subplots(1, 1, figsize=(9.75, 5), constrained_layout=True)
     c2 = ax_std.contourf(x, y, std_density, levels=std_levels, cmap="inferno")
     ax_std.set_title(r"Standard Deviation Density Along Latitude Sweep: $\sigma/\langle \rho \rangle$")
-    ax_std.set_xlabel("Latitude Sweep")
+    ax_std.set_xlabel(r"Latitude Sweep $(lat., lon.)$")
     ax_std.set_ylabel(r"Altitude $(\mathrm{km})$")
     fig_std.colorbar(c2, ax=ax_std, label=r"Standard Deviation Density $(\%)$")
 
-    tick_positions = _build_tick_positions(x_pairs, preferred_longitude=normalized_longitudes[0])
-    for ax in (ax_mean, ax_std):
+    # Keep tick count readable while preserving the stitched ordering.
+    tick_step = max(1, len(x_labels) // 12)
+    tick_positions = list(range(0, len(x_labels), tick_step))
+    for ax in (ax_mean, ax_mean_trans, ax_std):
         ax.set_xticks(tick_positions)
         ax.set_xticklabels([x_labels[idx] for idx in tick_positions], rotation=45, ha="right")
         ax.grid(True, which="major", axis="both", linestyle=":", color="white", linewidth=1.5, alpha=0.5)
 
     mean_output_path = Path("earthgram_mean_density.png")
+    mean_trans_output_path = Path("earthgram_mean_density_trans.png")
     std_output_path = Path("earthgram_std_density.png")
     fig_mean.savefig(mean_output_path, dpi=200)
+    fig_mean_trans.savefig(mean_trans_output_path, dpi=200)
     fig_std.savefig(std_output_path, dpi=200)
     print(f"Saved contour figure: {mean_output_path}")
+    print(f"Saved contour figure: {mean_trans_output_path}")
     print(f"Saved contour figure: {std_output_path}")
 
 

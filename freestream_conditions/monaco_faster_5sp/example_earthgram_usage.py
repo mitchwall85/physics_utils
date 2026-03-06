@@ -58,7 +58,7 @@ def _build_grids(
         for lat in latitudes:
             if longitude in data[lat]:
                 x_pairs.append((lat, longitude))
-                x_labels.append(f"{lat:g}° @ {longitude:g}°")
+                x_labels.append(f"({lat:g}\N{DEGREE SIGN}, {longitude:g}\N{DEGREE SIGN})")
 
     z = np.full((len(altitudes), len(x_pairs)), np.nan)
 
@@ -99,35 +99,40 @@ def plot_density_contours(data: EarthgramData, longitudes: tuple[float, ...] = (
         raise ValueError("Mean density values are not positive; cannot use logarithmic color scale.")
 
     mean_levels = np.geomspace(positive_mean.min(), positive_mean.max(), 20)
+    mean_ticks = np.geomspace(positive_mean.min(), positive_mean.max(), 10)
     std_valid = std_density[~np.isnan(std_density)]
     std_levels = np.linspace(std_valid.min(), std_valid.max(), 20) if std_valid.size else 20
 
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5), constrained_layout=True)
+    fig_mean, ax_mean = plt.subplots(1, 1, figsize=(9.75, 5), constrained_layout=True)
 
-    c1 = axes[0].contourf(x, y, mean_density, levels=mean_levels, norm=LogNorm())
-    axes[0].contour(x, y, mean_density, levels=mean_levels[::2], colors="k", linewidths=0.5, alpha=0.55)
-    axes[0].set_title(f"Mean Density (log scale), longitudes={normalized_longitudes}")
-    axes[0].set_xlabel("Latitude stitched by longitude (all 0° points, then 180° points)")
-    axes[0].set_ylabel("Altitude (km)")
-    fig.colorbar(c1, ax=axes[0], label="Mean Density (kg/m^3)")
+    c1 = ax_mean.contourf(x, y, mean_density, levels=mean_levels, norm=LogNorm(), cmap="inferno")
+    ax_mean.contour(x, y, mean_density, levels=mean_levels[::2], colors="k", linewidths=0.5, alpha=0.55)
+    ax_mean.set_title(f"Mean Density (log scale), longitudes={normalized_longitudes}")
+    ax_mean.set_xlabel("Stitched (lat, long)")
+    ax_mean.set_ylabel(r"Altitude $(\mathrm{km})$")
+    fig_mean.colorbar(c1, ax=ax_mean, label=r"Mean Density $(\mathrm{kg}/\mathrm{m}^3)$", ticks=mean_ticks)
 
-    c2 = axes[1].contourf(x, y, std_density, levels=std_levels)
-    axes[1].contour(x, y, std_density, levels=10, colors="k", linewidths=0.5, alpha=0.55)
-    axes[1].set_title(f"Standard Deviation Density (%), longitudes={normalized_longitudes}")
-    axes[1].set_xlabel("Latitude stitched by longitude (all 0° points, then 180° points)")
-    axes[1].set_ylabel("Altitude (km)")
-    fig.colorbar(c2, ax=axes[1], label="Standard Deviation Density (%)")
+    fig_std, ax_std = plt.subplots(1, 1, figsize=(9.75, 5), constrained_layout=True)
+    c2 = ax_std.contourf(x, y, std_density, levels=std_levels, cmap="inferno")
+    ax_std.contour(x, y, std_density, levels=10, colors="k", linewidths=0.5, alpha=0.55)
+    ax_std.set_title(f"Standard Deviation Density (%), longitudes={normalized_longitudes}")
+    ax_std.set_xlabel("Stitched (lat, long)")
+    ax_std.set_ylabel(r"Altitude $(\mathrm{km})$")
+    fig_std.colorbar(c2, ax=ax_std, label=r"Standard Deviation Density $(\%)$")
 
     # Keep tick count readable while preserving the stitched ordering.
     tick_step = max(1, len(x_labels) // 12)
     tick_positions = list(range(0, len(x_labels), tick_step))
-    for ax in axes:
+    for ax in (ax_mean, ax_std):
         ax.set_xticks(tick_positions)
         ax.set_xticklabels([x_labels[idx] for idx in tick_positions], rotation=45, ha="right")
 
-    output_path = Path("earthgram_density_contours_lon_0_then_180.png")
-    fig.savefig(output_path, dpi=200)
-    print(f"Saved contour figure: {output_path}")
+    mean_output_path = Path("earthgram_mean_density_contours_lon_0_then_180.png")
+    std_output_path = Path("earthgram_std_density_contours_lon_0_then_180.png")
+    fig_mean.savefig(mean_output_path, dpi=200)
+    fig_std.savefig(std_output_path, dpi=200)
+    print(f"Saved contour figure: {mean_output_path}")
+    print(f"Saved contour figure: {std_output_path}")
 
 
 def main() -> None:

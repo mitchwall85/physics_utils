@@ -7,7 +7,7 @@ name = "physics_utils"
 version = "0.1.0"
 description = "Utility functions for physics workflows"
 authors = [{name="Mitch Wall"}]
-dependencies = [numpy
-                scipy
-                pandas
-                matplotlib]
+dependencies = ["numpy",
+                "scipy",
+                "pandas",
+                "matplotlib"]

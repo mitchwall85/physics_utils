@@ -1,0 +1,5 @@
+# Core scientific computing dependencies used across physics_utils
+numpy
+scipy
+pandas
+matplotlib

@@ -47,7 +47,7 @@ def _collect_envelope_data(
         density_max[idx] = np.max(density_values)
         density_avg[idx] = average_density
 
-        if np.isclose(average_density, 0.0):
+        if average_density == 0.0:
             density_pct_diff_max[idx] = np.nan
             density_pct_diff_min[idx] = np.nan
         else:

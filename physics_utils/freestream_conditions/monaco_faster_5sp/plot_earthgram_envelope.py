@@ -9,9 +9,9 @@ import matplotlib
 import numpy as np
 
 try:
-    from .earthgram_parser import read_earthgram_output
+    from .earthgram_parser import read_earthgram_directory
 except ImportError:
-    from earthgram_parser import read_earthgram_output
+    from earthgram_parser import read_earthgram_directory
 
 
 POSSIBLE_DENSITY_PERTURBATION_KEYS = (
@@ -21,18 +21,6 @@ POSSIBLE_DENSITY_PERTURBATION_KEYS = (
     "standard deviations density",
     "sigma rho rho",
 )
-
-
-def _read_directory_earthgram_outputs(input_dir: Path, pattern: str) -> dict[float, dict[float, dict[float, dict[str, float]]]]:
-    files = sorted(path for path in input_dir.glob(pattern) if path.is_file())
-    if not files:
-        raise FileNotFoundError(f"No EarthGRAM output files found in {input_dir} matching pattern '{pattern}'.")
-
-    altitude_files: dict[float, Path] = {}
-    for idx, file_path in enumerate(files):
-        altitude_files[float(idx)] = file_path
-
-    return read_earthgram_output(altitude_files, pickle_name=str(input_dir / "earthgram_records.pkl"))
 
 
 def _collect_envelope_data(data: dict[float, dict[float, dict[float, dict[str, float]]]]) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -76,11 +64,20 @@ def _collect_envelope_data(data: dict[float, dict[float, dict[float, dict[str, f
     return altitudes, density_min, density_max, perturbation_max
 
 
-def plot_envelopes(input_dir: Path, pattern: str, output_prefix: str) -> tuple[Path, Path]:
+def plot_envelopes(
+    input_dir: Path,
+    pattern: str,
+    output_prefix: str,
+    prefer_filename_altitude: bool = False,
+) -> tuple[Path, Path]:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    data = _read_directory_earthgram_outputs(input_dir, pattern)
+    data = read_earthgram_directory(
+        input_dir=input_dir,
+        pattern=pattern,
+        prefer_filename_altitude=prefer_filename_altitude,
+    )
     altitudes, density_min, density_max, perturbation_max = _collect_envelope_data(data)
 
     density_path = input_dir / f"{output_prefix}_density_envelope.png"
@@ -125,12 +122,25 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         default="earthgram",
         help="Prefix for output figure names (default: earthgram).",
     )
+    parser.add_argument(
+        "--prefer-filename-altitude",
+        action="store_true",
+        help=(
+            "Infer/override altitude from filenames instead of using altitude from "
+            "each EarthGRAM record. Use only when files are single-altitude slices."
+        ),
+    )
     return parser
 
 
 def main() -> None:
     args = _build_arg_parser().parse_args()
-    density_path, perturbation_path = plot_envelopes(args.input_dir, args.pattern, args.output_prefix)
+    density_path, perturbation_path = plot_envelopes(
+        input_dir=args.input_dir,
+        pattern=args.pattern,
+        output_prefix=args.output_prefix,
+        prefer_filename_altitude=args.prefer_filename_altitude,
+    )
     print(f"Saved envelope figure: {density_path}")
     print(f"Saved perturbation figure: {perturbation_path}")
 

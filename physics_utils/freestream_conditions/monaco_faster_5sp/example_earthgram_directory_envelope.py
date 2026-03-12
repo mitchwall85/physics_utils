@@ -4,14 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-try:
-    from .plot_earthgram_envelope import plot_envelopes
-except ImportError:
-    from plot_earthgram_envelope import plot_envelopes
+from physics_utils.freestream_conditions.monaco_faster_5sp.plot_earthgram_envelope import plot_envelopes
 
 
 def main() -> None:
-    input_dir = Path("/path/to/earthgram_outputs")
+    input_dir = Path("/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/cases/conditions/condition_sweep_traj")
     file_pattern = "*.md"
 
     density_path, perturbation_path = plot_envelopes(

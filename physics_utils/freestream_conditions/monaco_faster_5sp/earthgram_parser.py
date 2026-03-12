@@ -158,8 +158,86 @@ def _merge_parsed_data(
                 base.setdefault(lat, {}).setdefault(lon, {})[target_alt] = fields
 
 
+def infer_altitude_from_filename(file_path: str | Path) -> float | None:
+    """Infer altitude (km) from a filename when present.
+
+    Supported examples include names like:
+    - ``lat_sweep_80km_LIST.md``
+    - ``earthgram_altitude_95.5_km.txt``
+    - ``run_120.md`` (falls back to the last numeric token)
+    """
+    name = Path(file_path).stem
+
+    km_match = re.search(r"([+-]?\d+(?:\.\d+)?)\s*(?:km|kilometer|kilometre)s?", name, re.IGNORECASE)
+    if km_match:
+        return float(km_match.group(1))
+
+    numeric_tokens = re.findall(r"[+-]?\d+(?:\.\d+)?", name)
+    if numeric_tokens:
+        return float(numeric_tokens[-1])
+
+    return None
+
+
+def find_earthgram_files(input_dir: str | Path, pattern: str = "*.md") -> list[Path]:
+    """Return sorted EarthGRAM output files in a directory."""
+    directory = Path(input_dir)
+    files = sorted(path for path in directory.glob(pattern) if path.is_file())
+    if not files:
+        raise FileNotFoundError(f"No EarthGRAM output files found in {directory} matching pattern '{pattern}'.")
+    return files
+
+
+def build_altitude_file_map(
+    input_dir: str | Path,
+    pattern: str = "*.md",
+    prefer_filename_altitude: bool = True,
+) -> dict[float, Path]:
+    """Build altitude(km)->file mapping for a directory of EarthGRAM outputs."""
+    files = find_earthgram_files(input_dir=input_dir, pattern=pattern)
+    altitude_files: dict[float, Path] = {}
+
+    for idx, file_path in enumerate(files):
+        altitude = infer_altitude_from_filename(file_path) if prefer_filename_altitude else None
+        if altitude is None:
+            altitude = float(idx)
+
+        while altitude in altitude_files:
+            altitude += 1e-6
+
+        altitude_files[float(altitude)] = file_path
+
+    return altitude_files
+
+
+def read_earthgram_directory(
+    input_dir: str | Path,
+    pattern: str = "*.md",
+    pickle_name: str = "earthgram_records.pkl",
+    prefer_filename_altitude: bool = False,
+) -> dict[float, dict[float, dict[float, dict[str, Any]]]]:
+    """Read all EarthGRAM outputs in ``input_dir`` and return merged records.
+
+    By default, altitude values are read from each EarthGRAM record directly.
+    Set ``prefer_filename_altitude=True`` only when each file is a single-altitude
+    slice and altitude should be forced from the filename.
+    """
+    files = find_earthgram_files(input_dir=input_dir, pattern=pattern)
+    pickle_path = Path(input_dir) / pickle_name
+
+    if prefer_filename_altitude:
+        altitude_files = build_altitude_file_map(
+            input_dir=input_dir,
+            pattern=pattern,
+            prefer_filename_altitude=True,
+        )
+        return read_earthgram_output(altitude_files, pickle_name=str(pickle_path))
+
+    return read_earthgram_output(files, pickle_name=str(pickle_path))
+
+
 def read_earthgram_output(
-    earthgram_files: str | Path | dict[float, str | Path],
+    earthgram_files: str | Path | dict[float, str | Path] | list[str | Path] | tuple[str | Path, ...],
     pickle_name: str = "earthgram_records.pkl",
 ) -> dict[float, dict[float, dict[float, dict[str, Any]]]]:
     """Read one or many EarthGRAM outputs and save a nested query dictionary.
@@ -171,6 +249,8 @@ def read_earthgram_output(
         - path to one EarthGRAM output file, or
         - mapping of altitude (km) -> EarthGRAM output file path.
           Use this mapping when each EarthGRAM file contains one altitude slice.
+        - list/tuple of EarthGRAM file paths.
+          Uses altitude from each parsed record in each file (no override).
 
     Returns
     -------
@@ -183,6 +263,11 @@ def read_earthgram_output(
         for altitude, file_path in earthgram_files.items():
             parsed = _read_single_earthgram_file(file_path)
             _merge_parsed_data(data, parsed, altitude_override=float(altitude))
+        pickle_path = Path(pickle_name)
+    elif isinstance(earthgram_files, (list, tuple)):
+        for file_path in earthgram_files:
+            parsed = _read_single_earthgram_file(file_path)
+            _merge_parsed_data(data, parsed)
         pickle_path = Path(pickle_name)
     else:
         file_path = Path(earthgram_files)

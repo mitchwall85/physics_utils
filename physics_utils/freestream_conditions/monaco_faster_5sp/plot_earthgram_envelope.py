@@ -94,29 +94,19 @@ def plot_envelopes(
     ax_density.set_title("EarthGRAM Mean-Density Envelope")
     ax_density.grid(True, which="both", linestyle=":")
     ax_density.legend(loc="best")
+    # set ylim bottom to zero
+    ax_density.set_ylim(bottom=0)
     fig_density.savefig(density_path, dpi=200)
 
-    fig_perturbation, ax_perturbation = plt.subplots(1, 1, figsize=(6, 8), constrained_layout=True)
-    ax_perturbation.axvline(0.0, linewidth=1.5, color="black", linestyle="--", label="0% reference")
-    ax_perturbation.plot(
-        density_pct_diff_max,
-        altitudes,
-        label="Max density difference from average",
-        linewidth=2,
-        color="tab:red",
-    )
-    ax_perturbation.plot(
-        density_pct_diff_min,
-        altitudes,
-        label="Min density difference from average",
-        linewidth=2,
-        color="tab:blue",
-    )
-    ax_perturbation.set_xlabel("Density Difference from Average (%)")
+    fig_perturbation, ax_perturbation = plt.subplots(1, 1, figsize=(2, 4), constrained_layout=True)
+    ax_perturbation.plot(perturbation_max, altitudes, label="Max density perturbation", linewidth=2, color="tab:red")
+    ax_perturbation.set_xlabel("Max Density Perturbation")
     ax_perturbation.set_ylabel(r"Altitude $(\mathrm{km})$")
-    ax_perturbation.set_title("EarthGRAM Density Difference Envelope by Altitude")
+    ax_perturbation.set_title("Max Density Perturbation")
     ax_perturbation.grid(True, which="both", linestyle=":")
-    ax_perturbation.legend(loc="best")
+    #ax_perturbation.legend(loc="best")
+    # set ylim to zero
+    ax_perturbation.set_ylim(bottom=0)
     fig_perturbation.savefig(perturbation_path, dpi=200)
 
     return density_path, perturbation_path

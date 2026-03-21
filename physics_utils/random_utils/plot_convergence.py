@@ -48,9 +48,10 @@ def read_convergence_file(file_path: str | Path) -> dict[str, np.ndarray]:
 
 def main() -> None:
     dirs = {
-        # "case_name": "/path/to/directory/containing/convergence.plt",
-        # "baseline": "/path/to/baseline/run",
-        # "refined_mesh": "/path/to/refined_mesh/run",
+        "1000": "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/dakota-monaco/90km_16kms_33_params_v3/monaco_template_burt_conv_1000/",
+        "2500": "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/dakota-monaco/90km_16kms_33_params_v3/monaco_template_burt_conv_2500/",
+        "5000": "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/dakota-monaco/90km_16kms_33_params_v3/monaco_template_burt_conv_5000/",
+        "10000": "/home/mitch/odrive-agent-mount/OneDrive For Business/CUBoulder/NGPDL/mitll_shs/dakota-monaco/90km_16kms_33_params_v3/monaco_template_burt_conv_10000/"
     }
     output_path = Path("convergence_histories.png")
 

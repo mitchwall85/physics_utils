@@ -24,12 +24,15 @@ def read_convergence_file(file_path: str | Path) -> dict[str, np.ndarray]:
         raise ValueError(f"Missing VARIABLES header in {path}")
 
     variable_names = [token.strip().strip('"') for token in variables_line.split("=", maxsplit=1)[1].split(",")]
-    data_start = next((index + 1 for index, line in enumerate(lines) if line == "ZONE"), None)
-    if data_start is None:
-        raise ValueError(f"Missing ZONE header in {path}")
+    variables_index = lines.index(variables_line)
+    data_lines = lines[variables_index + 1 :]
+    if data_lines and data_lines[0] == "ZONE":
+        data_lines = data_lines[1:]
+    if not data_lines:
+        raise ValueError(f"Missing convergence data rows in {path}")
 
     columns: dict[str, list[float]] = {name: [] for name in variable_names}
-    for line in lines[data_start:]:
+    for line in data_lines:
         values = line.split()
         if len(values) != len(variable_names):
             raise ValueError(

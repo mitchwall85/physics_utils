@@ -64,7 +64,7 @@ def _collect_envelope_data(
 
         perturbation_values = density_perturbation_map.get(float(altitude))
         if perturbation_values:
-            density_perturbation_max[idx] = np.max(np.asarray(perturbation_values, dtype=float))
+            density_perturbation_max[idx] = np.max(np.abs(np.asarray(perturbation_values, dtype=float)))
 
     return (
         altitudes,
@@ -150,9 +150,9 @@ def plot_envelopes(
     maxmin_density_pct[valid_min] = 100.0 * (density_max[valid_min] - density_min[valid_min]) / density_min[valid_min]
 
     fig_maxmin, ax_maxmin = plt.subplots(1, 1, figsize=(4, 8), constrained_layout=True)
-    ax_maxmin.plot(maxmin_density_pct, altitudes, linewidth=2, color="tab:purple")
+    ax_maxmin.plot(maxmin_density_pct, altitudes, linewidth=2)
     ax_maxmin.set_xlim(left=0.0)
-    ax_maxmin.set_xlabel(r"$(\rho_{\max} - \rho_{\min}) / \rho_{\min} \times 100$ (%)")
+    ax_maxmin.set_xlabel(r"$(\rho_{\max} - \rho_{\min}) / \rho_{\min} $ (%)")
     ax_maxmin.set_ylabel(r"Altitude $(\mathrm{km})$")
     ax_maxmin.set_title("EarthGRAM Density Range Relative to Minimum")
     ax_maxmin.grid(True, which="both", linestyle=":")
@@ -160,7 +160,7 @@ def plot_envelopes(
     fig_maxmin.savefig(maxmin_path, dpi=200)
 
     fig_perturbation_max, ax_perturbation_max = plt.subplots(1, 1, figsize=(4, 8), constrained_layout=True)
-    ax_perturbation_max.plot(density_perturbation_max, altitudes, linewidth=2, color="tab:purple")
+    ax_perturbation_max.plot(density_perturbation_max, altitudes, linewidth=2)
     ax_perturbation_max.set_xlim(left=0.0)
     ax_perturbation_max.set_xlabel("Density Perturbation (%)")
     ax_perturbation_max.set_ylabel(r"Altitude $(\mathrm{km})$")

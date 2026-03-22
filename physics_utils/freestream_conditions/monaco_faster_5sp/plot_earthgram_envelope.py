@@ -62,7 +62,7 @@ def plot_envelopes(
     pattern: str,
     output_prefix: str,
     prefer_filename_altitude: bool = False,
-) -> tuple[Path, Path]:
+) -> tuple[Path, Path, Path]:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
@@ -82,6 +82,7 @@ def plot_envelopes(
 
     density_path = input_dir / f"{output_prefix}_density_envelope.png"
     perturbation_path = input_dir / f"{output_prefix}_density_pct_envelope.png"
+    maxmin_path = input_dir / f"{output_prefix}_density_pct_maxmin.png"
 
     fig_density, ax_density = plt.subplots(1, 1, figsize=(6, 8), constrained_layout=True)
     ax_density.plot(density_min, altitudes, label="Min mean density", linewidth=2)
@@ -98,18 +99,45 @@ def plot_envelopes(
     ax_density.set_ylim(bottom=0)
     fig_density.savefig(density_path, dpi=200)
 
-    fig_perturbation, ax_perturbation = plt.subplots(1, 1, figsize=(2, 4), constrained_layout=True)
-    ax_perturbation.plot(perturbation_max, altitudes, label="Max density perturbation", linewidth=2, color="tab:red")
-    ax_perturbation.set_xlabel("Max Density Perturbation")
+    fig_perturbation, ax_perturbation = plt.subplots(1, 1, figsize=(4, 8), constrained_layout=True)
+    ax_perturbation.plot(
+        density_pct_diff_min,
+        altitudes,
+        label="Min vs. average mean density",
+        linewidth=2,
+        color="tab:blue",
+    )
+    ax_perturbation.plot(
+        density_pct_diff_max,
+        altitudes,
+        label="Max vs. average mean density",
+        linewidth=2,
+        color="tab:red",
+    )
+    ax_perturbation.axvline(0.0, color="black", linewidth=1, linestyle="--")
+    ax_perturbation.set_xlabel("Percent Difference from Average Mean Density (%)")
     ax_perturbation.set_ylabel(r"Altitude $(\mathrm{km})$")
-    ax_perturbation.set_title("Max Density Perturbation")
+    ax_perturbation.set_title("EarthGRAM Mean-Density Percent Envelope")
     ax_perturbation.grid(True, which="both", linestyle=":")
-    #ax_perturbation.legend(loc="best")
-    # set ylim to zero
+    ax_perturbation.legend(loc="best")
     ax_perturbation.set_ylim(bottom=0)
     fig_perturbation.savefig(perturbation_path, dpi=200)
 
-    return density_path, perturbation_path
+    maxmin_density_pct = np.full_like(density_min, np.nan)
+    valid_min = density_min != 0.0
+    maxmin_density_pct[valid_min] = 100.0 * (density_max[valid_min] - density_min[valid_min]) / density_min[valid_min]
+
+    fig_maxmin, ax_maxmin = plt.subplots(1, 1, figsize=(4, 8), constrained_layout=True)
+    ax_maxmin.plot(maxmin_density_pct, altitudes, linewidth=2, color="tab:purple")
+    ax_maxmin.set_xlim(left=0.0)
+    ax_maxmin.set_xlabel(r"$(\rho_{\max} - \rho_{\min}) / \rho_{\min} \times 100$ (%)")
+    ax_maxmin.set_ylabel(r"Altitude $(\mathrm{km})$")
+    ax_maxmin.set_title("EarthGRAM Density Range Relative to Minimum")
+    ax_maxmin.grid(True, which="both", linestyle=":")
+    ax_maxmin.set_ylim(bottom=0)
+    fig_maxmin.savefig(maxmin_path, dpi=200)
+
+    return density_path, perturbation_path, maxmin_path
 
 
 def _build_arg_parser() -> argparse.ArgumentParser:
@@ -140,7 +168,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     args = _build_arg_parser().parse_args()
-    density_path, perturbation_path = plot_envelopes(
+    density_path, perturbation_path, maxmin_path = plot_envelopes(
         input_dir=args.input_dir,
         pattern=args.pattern,
         output_prefix=args.output_prefix,
@@ -148,6 +176,7 @@ def main() -> None:
     )
     print(f"Saved envelope figure: {density_path}")
     print(f"Saved perturbation figure: {perturbation_path}")
+    print(f"Saved max/min perturbation figure: {maxmin_path}")
 
 
 if __name__ == "__main__":

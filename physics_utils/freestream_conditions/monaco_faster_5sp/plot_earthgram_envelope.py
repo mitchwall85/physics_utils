@@ -17,8 +17,9 @@ except ImportError:
 
 def _collect_envelope_data(
     data: dict[float, dict[float, dict[float, dict[str, float]]]],
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     altitude_map: dict[float, list[float]] = {}
+    density_perturbation_map: dict[float, list[float]] = {}
 
     for lon_map in data.values():
         for alt_map in lon_map.values():
@@ -29,6 +30,16 @@ def _collect_envelope_data(
 
                 altitude_map.setdefault(float(altitude), []).append(float(mean_density))
 
+                std_density_pct = fields.get("standard deviations density")
+                if std_density_pct is None:
+                    continue
+
+                std_density_pct = float(std_density_pct)
+                if std_density_pct <= 0.0:
+                    continue
+
+                density_perturbation_map.setdefault(float(altitude), []).append(100.0 / std_density_pct)
+
     if not altitude_map:
         raise ValueError("No 'mean density' entries were parsed from the supplied EarthGRAM files.")
 
@@ -38,6 +49,7 @@ def _collect_envelope_data(
     density_avg = np.empty_like(altitudes)
     density_pct_diff_max = np.empty_like(altitudes)
     density_pct_diff_min = np.empty_like(altitudes)
+    density_perturbation_max = np.full_like(altitudes, np.nan)
 
     for idx, altitude in enumerate(altitudes):
         density_values = np.array(altitude_map[float(altitude)], dtype=float)
@@ -54,7 +66,19 @@ def _collect_envelope_data(
             density_pct_diff_max[idx] = 100.0 * (density_max[idx] - average_density) / average_density
             density_pct_diff_min[idx] = 100.0 * (density_min[idx] - average_density) / average_density
 
-    return altitudes, density_min, density_max, density_avg, density_pct_diff_max, density_pct_diff_min
+        perturbation_values = density_perturbation_map.get(float(altitude))
+        if perturbation_values:
+            density_perturbation_max[idx] = np.max(np.asarray(perturbation_values, dtype=float))
+
+    return (
+        altitudes,
+        density_min,
+        density_max,
+        density_avg,
+        density_pct_diff_max,
+        density_pct_diff_min,
+        density_perturbation_max,
+    )
 
 
 def plot_envelopes(
@@ -62,7 +86,7 @@ def plot_envelopes(
     pattern: str,
     output_prefix: str,
     prefer_filename_altitude: bool = False,
-) -> tuple[Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path]:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
@@ -78,11 +102,13 @@ def plot_envelopes(
         density_avg,
         density_pct_diff_max,
         density_pct_diff_min,
+        density_perturbation_max,
     ) = _collect_envelope_data(data)
 
     density_path = input_dir / f"{output_prefix}_density_envelope.png"
     perturbation_path = input_dir / f"{output_prefix}_density_pct_envelope.png"
     maxmin_path = input_dir / f"{output_prefix}_density_pct_maxmin.png"
+    perturbation_max_path = input_dir / f"{output_prefix}_density_perturbation_max.png"
 
     fig_density, ax_density = plt.subplots(1, 1, figsize=(6, 8), constrained_layout=True)
     ax_density.plot(density_min, altitudes, label="Min mean density", linewidth=2)
@@ -137,7 +163,17 @@ def plot_envelopes(
     ax_maxmin.set_ylim(bottom=0)
     fig_maxmin.savefig(maxmin_path, dpi=200)
 
-    return density_path, perturbation_path, maxmin_path
+    fig_perturbation_max, ax_perturbation_max = plt.subplots(1, 1, figsize=(4, 8), constrained_layout=True)
+    ax_perturbation_max.plot(density_perturbation_max, altitudes, linewidth=2, color="tab:purple")
+    ax_perturbation_max.set_xlim(left=0.0)
+    ax_perturbation_max.set_xlabel(r"$\langle \rho \rangle / \sigma_{\rho}$")
+    ax_perturbation_max.set_ylabel(r"Altitude $(\mathrm{km})$")
+    ax_perturbation_max.set_title("EarthGRAM Maximum Density Perturbation")
+    ax_perturbation_max.grid(True, which="both", linestyle=":")
+    ax_perturbation_max.set_ylim(bottom=0)
+    fig_perturbation_max.savefig(perturbation_max_path, dpi=200)
+
+    return density_path, perturbation_path, maxmin_path, perturbation_max_path
 
 
 def _build_arg_parser() -> argparse.ArgumentParser:
@@ -168,7 +204,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     args = _build_arg_parser().parse_args()
-    density_path, perturbation_path, maxmin_path = plot_envelopes(
+    density_path, perturbation_path, maxmin_path, perturbation_max_path = plot_envelopes(
         input_dir=args.input_dir,
         pattern=args.pattern,
         output_prefix=args.output_prefix,
@@ -177,6 +213,7 @@ def main() -> None:
     print(f"Saved envelope figure: {density_path}")
     print(f"Saved perturbation figure: {perturbation_path}")
     print(f"Saved max/min perturbation figure: {maxmin_path}")
+    print(f"Saved max perturbation figure: {perturbation_max_path}")
 
 
 if __name__ == "__main__":

@@ -60,7 +60,7 @@ def main() -> None:
             "Populate the `dirs` dictionary in plot_convergence.py with case names and directories before running."
         )
 
-    fig, axes = plt.subplots(len(PLOT_KEYS), 1, figsize=(10, 10), sharex=True, constrained_layout=True)
+    fig, axes = plt.subplots(len(PLOT_KEYS), 1, figsize=(6, 4), sharex=True, constrained_layout=True)
 
     for case_name, directory in dirs.items():
         file_path = Path(directory) / CONVERGENCE_FILENAME
@@ -70,17 +70,39 @@ def main() -> None:
         for axis, variable_name in zip(axes, PLOT_KEYS):
             values = convergence_data[variable_name]
             positive_values = np.where(values > 0.0, values, np.nan)
-            axis.plot(time_steps, positive_values, label=case_name)
-            axis.set_ylabel(variable_name)
+            axis.plot(time_steps, positive_values, label=fr"$\mathtt{{ieval}}$={case_name}")
+            if variable_name == "global convergence level":
+                axis.set_ylabel("global\nconvergence\nlevel")
+            else:
+                axis.set_ylabel(variable_name)
             axis.set_yscale("log")
             axis.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.6)
 
-    axes[0].set_title("Convergence history comparison")
+    axes[0].set_title(r"Convergence History Comparison for $\mathtt{ieval}$ Values")
     axes[-1].set_xlabel(TIME_STEP_KEY)
     axes[0].legend()
     fig.savefig(output_path, dpi=300)
-    plt.show()
 
+    # make one axis with 6x3 dimentions
+    fig, axes = plt.subplots(1, 1, figsize=(6, 3), sharex=True, constrained_layout=True)
+    
+    case_name = "5000"
+    directory = dirs[case_name]
+    file_path = Path(directory) / CONVERGENCE_FILENAME
+    convergence_data = read_convergence_file(file_path)
+    time_steps = convergence_data[TIME_STEP_KEY]
+
+    axes.plot(time_steps, convergence_data['particles'], label=case_name)
+    axes.plot(time_steps, convergence_data['collisions'], label=case_name)
+    axes.plot(time_steps, convergence_data['global convergence level'], label=case_name)
+    axes.set_ylabel(variable_name)
+    axes.set_yscale("log")
+    axes.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.6)
+
+    axes.set_title("Convergence history comparison")
+    axes.set_xlabel(TIME_STEP_KEY)
+    #axes.legend()
+    fig.savefig(f"stuff_{output_path}.png", dpi=300)
 
 if __name__ == "__main__":
     main()

@@ -17,9 +17,10 @@ except ImportError:
 
 def _collect_envelope_data(
     data: dict[float, dict[float, dict[float, dict[str, float]]]],
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     altitude_map: dict[float, list[float]] = {}
     density_perturbation_map: dict[float, list[float]] = {}
+    horizontal_wind_rss_map: dict[float, list[float]] = {}
 
     for lon_map in data.values():
         for alt_map in lon_map.values():
@@ -30,11 +31,16 @@ def _collect_envelope_data(
 
                 altitude_map.setdefault(float(altitude), []).append(float(mean_density))
 
-                density_perturbation_pct = fields.get("perturbation density")
-                if density_perturbation_pct is None:
-                    continue
+                ew_wind = fields.get("mean e w wind")
+                ns_wind = fields.get("mean n s wind")
+                if ew_wind is not None and ns_wind is not None:
+                    horizontal_wind_rss_map.setdefault(float(altitude), []).append(
+                        float(np.hypot(float(ew_wind), float(ns_wind)))
+                    )
 
-                density_perturbation_map.setdefault(float(altitude), []).append(float(density_perturbation_pct))
+                density_perturbation_pct = fields.get("perturbation density")
+                if density_perturbation_pct is not None:
+                    density_perturbation_map.setdefault(float(altitude), []).append(float(density_perturbation_pct))
 
     if not altitude_map:
         raise ValueError("No 'mean density' entries were parsed from the supplied EarthGRAM files.")
@@ -46,6 +52,9 @@ def _collect_envelope_data(
     density_pct_diff_max = np.empty_like(altitudes)
     density_pct_diff_min = np.empty_like(altitudes)
     density_perturbation_max = np.full_like(altitudes, np.nan)
+    horizontal_wind_rss_min = np.full_like(altitudes, np.nan)
+    horizontal_wind_rss_max = np.full_like(altitudes, np.nan)
+    horizontal_wind_rss_avg = np.full_like(altitudes, np.nan)
 
     for idx, altitude in enumerate(altitudes):
         density_values = np.array(altitude_map[float(altitude)], dtype=float)
@@ -66,6 +75,13 @@ def _collect_envelope_data(
         if perturbation_values:
             density_perturbation_max[idx] = np.max(np.abs(np.asarray(perturbation_values, dtype=float)))
 
+        horizontal_wind_rss_values = horizontal_wind_rss_map.get(float(altitude))
+        if horizontal_wind_rss_values:
+            horizontal_wind_rss_array = np.asarray(horizontal_wind_rss_values, dtype=float)
+            horizontal_wind_rss_min[idx] = np.min(horizontal_wind_rss_array)
+            horizontal_wind_rss_max[idx] = np.max(horizontal_wind_rss_array)
+            horizontal_wind_rss_avg[idx] = np.mean(horizontal_wind_rss_array)
+
     return (
         altitudes,
         density_min,
@@ -74,6 +90,9 @@ def _collect_envelope_data(
         density_pct_diff_max,
         density_pct_diff_min,
         density_perturbation_max,
+        horizontal_wind_rss_min,
+        horizontal_wind_rss_max,
+        horizontal_wind_rss_avg,
     )
 
 
@@ -82,7 +101,7 @@ def plot_envelopes(
     pattern: str,
     output_prefix: str,
     prefer_filename_altitude: bool = False,
-) -> tuple[Path, Path, Path, Path]:
+) -> tuple[Path, Path, Path, Path, Path]:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
@@ -99,12 +118,16 @@ def plot_envelopes(
         density_pct_diff_max,
         density_pct_diff_min,
         density_perturbation_max,
+        horizontal_wind_rss_min,
+        horizontal_wind_rss_max,
+        horizontal_wind_rss_avg,
     ) = _collect_envelope_data(data)
 
     density_path = input_dir / f"{output_prefix}_density_envelope.png"
     perturbation_path = input_dir / f"{output_prefix}_density_pct_envelope.png"
     maxmin_path = input_dir / f"{output_prefix}_density_pct_maxmin.png"
     perturbation_max_path = input_dir / f"{output_prefix}_density_perturbation_max.png"
+    wind_rss_path = input_dir / f"{output_prefix}_horizontal_wind_rss_envelope.png"
 
     fig_density, ax_density = plt.subplots(1, 1, figsize=(6, 8), constrained_layout=True)
     ax_density.plot(density_min, altitudes, label="Min mean density", linewidth=2)
@@ -169,7 +192,33 @@ def plot_envelopes(
     ax_perturbation_max.set_ylim(bottom=0)
     fig_perturbation_max.savefig(perturbation_max_path, dpi=200)
 
-    return density_path, perturbation_path, maxmin_path, perturbation_max_path
+    fig_wind_rss, ax_wind_rss = plt.subplots(1, 1, figsize=(6, 8), constrained_layout=True)
+    ax_wind_rss.plot(horizontal_wind_rss_min, altitudes, label="Min mean horizontal-wind RSS", linewidth=2)
+    ax_wind_rss.plot(
+        horizontal_wind_rss_avg,
+        altitudes,
+        label="Average mean horizontal-wind RSS",
+        linewidth=2,
+        linestyle="--",
+    )
+    ax_wind_rss.plot(horizontal_wind_rss_max, altitudes, label="Max mean horizontal-wind RSS", linewidth=2)
+    ax_wind_rss.fill_betweenx(
+        altitudes,
+        horizontal_wind_rss_min,
+        horizontal_wind_rss_max,
+        alpha=0.25,
+        label="Horizontal-wind RSS envelope",
+    )
+    ax_wind_rss.set_xlim(left=0.0)
+    ax_wind_rss.set_xlabel(r"Mean Horizontal Wind RSS $(\mathrm{m}/\mathrm{s})$")
+    ax_wind_rss.set_ylabel(r"Altitude $(\mathrm{km})$")
+    ax_wind_rss.set_title("EarthGRAM Mean Horizontal-Wind RSS Envelope")
+    ax_wind_rss.grid(True, which="both", linestyle=":")
+    ax_wind_rss.legend(loc="best")
+    ax_wind_rss.set_ylim(bottom=0)
+    fig_wind_rss.savefig(wind_rss_path, dpi=200)
+
+    return density_path, perturbation_path, maxmin_path, perturbation_max_path, wind_rss_path
 
 
 def _build_arg_parser() -> argparse.ArgumentParser:
@@ -200,7 +249,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     args = _build_arg_parser().parse_args()
-    density_path, perturbation_path, maxmin_path, perturbation_max_path = plot_envelopes(
+    density_path, perturbation_path, maxmin_path, perturbation_max_path, wind_rss_path = plot_envelopes(
         input_dir=args.input_dir,
         pattern=args.pattern,
         output_prefix=args.output_prefix,
@@ -210,6 +259,7 @@ def main() -> None:
     print(f"Saved perturbation figure: {perturbation_path}")
     print(f"Saved max/min perturbation figure: {maxmin_path}")
     print(f"Saved max perturbation figure: {perturbation_max_path}")
+    print(f"Saved horizontal-wind RSS figure: {wind_rss_path}")
 
 
 if __name__ == "__main__":

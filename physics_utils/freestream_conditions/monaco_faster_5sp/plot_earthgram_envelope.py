@@ -101,6 +101,8 @@ def plot_envelopes(
         density_perturbation_max,
     ) = _collect_envelope_data(data)
 
+    fig_dims = (4,6)
+
     density_path = input_dir / f"{output_prefix}_density_envelope.png"
     perturbation_path = input_dir / f"{output_prefix}_density_pct_envelope.png"
     maxmin_path = input_dir / f"{output_prefix}_density_pct_maxmin.png"
@@ -121,7 +123,7 @@ def plot_envelopes(
     ax_density.set_ylim(bottom=0)
     fig_density.savefig(density_path, dpi=200)
 
-    fig_perturbation, ax_perturbation = plt.subplots(1, 1, figsize=(4, 8), constrained_layout=True)
+    fig_perturbation, ax_perturbation = plt.subplots(1, 1, figsize=fig_dims, constrained_layout=True)
     ax_perturbation.plot(
         density_pct_diff_min,
         altitudes,
@@ -149,7 +151,7 @@ def plot_envelopes(
     valid_min = density_min != 0.0
     maxmin_density_pct[valid_min] = 100.0 * (density_max[valid_min] - density_min[valid_min]) / density_min[valid_min]
 
-    fig_maxmin, ax_maxmin = plt.subplots(1, 1, figsize=(4, 8), constrained_layout=True)
+    fig_maxmin, ax_maxmin = plt.subplots(1, 1, figsize=fig_dims, constrained_layout=True)
     ax_maxmin.plot(maxmin_density_pct, altitudes, linewidth=2)
     ax_maxmin.set_xlim(left=0.0)
     ax_maxmin.set_xlabel(r"$(\rho_{\max} - \rho_{\min}) / \rho_{\min} $ (%)")
@@ -159,7 +161,7 @@ def plot_envelopes(
     ax_maxmin.set_ylim(bottom=0)
     fig_maxmin.savefig(maxmin_path, dpi=200)
 
-    fig_perturbation_max, ax_perturbation_max = plt.subplots(1, 1, figsize=(4, 8), constrained_layout=True)
+    fig_perturbation_max, ax_perturbation_max = plt.subplots(1, 1, figsize=fig_dims, constrained_layout=True)
     ax_perturbation_max.plot(density_perturbation_max, altitudes, linewidth=2)
     ax_perturbation_max.set_xlim(left=0.0)
     ax_perturbation_max.set_xlabel("Density Perturbation (%)")

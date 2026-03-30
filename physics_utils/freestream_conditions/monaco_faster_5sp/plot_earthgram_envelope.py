@@ -154,9 +154,9 @@ def plot_envelopes(
     maxmin_density_pct[valid_min] = 100.0 * (density_max[valid_min] - density_min[valid_min]) / density_min[valid_min]
 
     fig_maxmin, ax_maxmin = plt.subplots(1, 1, figsize=(4, 8), constrained_layout=True)
-    ax_maxmin.plot(maxmin_density_pct, altitudes, linewidth=2, color="tab:purple")
+    ax_maxmin.plot(maxmin_density_pct, altitudes, linewidth=2)
     ax_maxmin.set_xlim(left=0.0)
-    ax_maxmin.set_xlabel(r"$(\rho_{\max} - \rho_{\min}) / \rho_{\min} \times 100$ (%)")
+    ax_maxmin.set_xlabel(r"$(\rho_{\max} - \rho_{\min}) / \rho_{\min} $ (%)")
     ax_maxmin.set_ylabel(r"Altitude $(\mathrm{km})$")
     ax_maxmin.set_title("EarthGRAM Density Range Relative to Minimum")
     ax_maxmin.grid(True, which="both", linestyle=":")

@@ -30,11 +30,15 @@ def _collect_envelope_data(
 
                 altitude_map.setdefault(float(altitude), []).append(float(mean_density))
 
-                density_perturbation_pct = fields.get("perturbation density")
-                if density_perturbation_pct is None:
+                std_density_pct = fields.get("standard deviations density")
+                if std_density_pct is None:
                     continue
 
-                density_perturbation_map.setdefault(float(altitude), []).append(float(density_perturbation_pct))
+                std_density_pct = float(std_density_pct)
+                if std_density_pct <= 0.0:
+                    continue
+
+                density_perturbation_map.setdefault(float(altitude), []).append(100.0 / std_density_pct)
 
     if not altitude_map:
         raise ValueError("No 'mean density' entries were parsed from the supplied EarthGRAM files.")
@@ -64,7 +68,7 @@ def _collect_envelope_data(
 
         perturbation_values = density_perturbation_map.get(float(altitude))
         if perturbation_values:
-            density_perturbation_max[idx] = np.max(np.abs(np.asarray(perturbation_values, dtype=float)))
+            density_perturbation_max[idx] = np.max(np.asarray(perturbation_values, dtype=float))
 
     return (
         altitudes,
@@ -160,9 +164,9 @@ def plot_envelopes(
     fig_maxmin.savefig(maxmin_path, dpi=200)
 
     fig_perturbation_max, ax_perturbation_max = plt.subplots(1, 1, figsize=(4, 8), constrained_layout=True)
-    ax_perturbation_max.plot(density_perturbation_max, altitudes, linewidth=2)
+    ax_perturbation_max.plot(density_perturbation_max, altitudes, linewidth=2, color="tab:purple")
     ax_perturbation_max.set_xlim(left=0.0)
-    ax_perturbation_max.set_xlabel("Density Perturbation (%)")
+    ax_perturbation_max.set_xlabel(r"$\langle \rho \rangle / \sigma_{\rho}$")
     ax_perturbation_max.set_ylabel(r"Altitude $(\mathrm{km})$")
     ax_perturbation_max.set_title("EarthGRAM Maximum Density Perturbation")
     ax_perturbation_max.grid(True, which="both", linestyle=":")

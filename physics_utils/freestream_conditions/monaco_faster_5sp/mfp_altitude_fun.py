@@ -33,5 +33,6 @@ def mfp_altitude_5sp_monaco(alt, output=False):
     return mfp
 
 
-alt = 100
-mfp_altitude_5sp_monaco(alt, True)
+if __name__ == "__main__":
+    alt = 100
+    mfp_altitude_5sp_monaco(alt, True)

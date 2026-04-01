@@ -121,25 +121,25 @@ def plot_envelopes(
     ax_density.set_ylim(bottom=0)
     fig_density.savefig(density_path, dpi=200)
 
-    fig_perturbation, ax_perturbation = plt.subplots(1, 1, figsize=(4, 8), constrained_layout=True)
+    fig_perturbation, ax_perturbation = plt.subplots(1, 1, figsize=(6, 6), constrained_layout=True)
     ax_perturbation.plot(
         density_pct_diff_min,
         altitudes,
-        label="Min vs. average mean density",
+        label="Min Density Variation",
         linewidth=2,
         color="tab:blue",
     )
     ax_perturbation.plot(
         density_pct_diff_max,
         altitudes,
-        label="Max vs. average mean density",
+        label="Max Density Variation",
         linewidth=2,
         color="tab:red",
     )
     ax_perturbation.axvline(0.0, color="black", linewidth=1, linestyle="--")
-    ax_perturbation.set_xlabel("Percent Difference from Average Mean Density (%)")
+    ax_perturbation.set_xlabel("% Difference from Average Density")
     ax_perturbation.set_ylabel(r"Altitude $(\mathrm{km})$")
-    ax_perturbation.set_title("EarthGRAM Mean-Density Percent Envelope")
+    #ax_perturbation.set_title("Density Envelope")
     ax_perturbation.grid(True, which="both", linestyle=":")
     ax_perturbation.legend(loc="best")
     ax_perturbation.set_ylim(bottom=0)
@@ -149,7 +149,7 @@ def plot_envelopes(
     valid_min = density_min != 0.0
     maxmin_density_pct[valid_min] = 100.0 * (density_max[valid_min] - density_min[valid_min]) / density_min[valid_min]
 
-    fig_maxmin, ax_maxmin = plt.subplots(1, 1, figsize=(4, 8), constrained_layout=True)
+    fig_maxmin, ax_maxmin = plt.subplots(1, 1, figsize=(6, 6), constrained_layout=True)
     ax_maxmin.plot(maxmin_density_pct, altitudes, linewidth=2)
     ax_maxmin.set_xlim(left=0.0)
     ax_maxmin.set_xlabel(r"$(\rho_{\max} - \rho_{\min}) / \rho_{\min} $ (%)")
@@ -159,12 +159,12 @@ def plot_envelopes(
     ax_maxmin.set_ylim(bottom=0)
     fig_maxmin.savefig(maxmin_path, dpi=200)
 
-    fig_perturbation_max, ax_perturbation_max = plt.subplots(1, 1, figsize=(4, 8), constrained_layout=True)
+    fig_perturbation_max, ax_perturbation_max = plt.subplots(1, 1, figsize=(6, 6), constrained_layout=True)
     ax_perturbation_max.plot(density_perturbation_max, altitudes, linewidth=2)
     ax_perturbation_max.set_xlim(left=0.0)
     ax_perturbation_max.set_xlabel("Density Perturbation (%)")
     ax_perturbation_max.set_ylabel(r"Altitude $(\mathrm{km})$")
-    ax_perturbation_max.set_title("EarthGRAM Maximum Density Perturbation")
+    ax_perturbation_max.set_title("Maximum Density Perturbation")
     ax_perturbation_max.grid(True, which="both", linestyle=":")
     ax_perturbation_max.set_ylim(bottom=0)
     fig_perturbation_max.savefig(perturbation_max_path, dpi=200)

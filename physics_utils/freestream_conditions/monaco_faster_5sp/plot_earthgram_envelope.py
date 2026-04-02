@@ -104,7 +104,7 @@ def plot_envelopes(
     density_path = input_dir / f"{output_prefix}_density_envelope.png"
     perturbation_path = input_dir / f"{output_prefix}_density_pct_envelope.png"
     maxmin_path = input_dir / f"{output_prefix}_density_pct_maxmin.png"
-    perturbation_max_path = input_dir / f"{output_prefix}_density_perturbation_max.png"
+    perturbation_max_path = input_dir / "earthgram_perturbation_max_v2.png"
 
     fig_density, ax_density = plt.subplots(1, 1, figsize=(6, 8), constrained_layout=True)
     ax_density.plot(density_min, altitudes, label="Min mean density", linewidth=2)

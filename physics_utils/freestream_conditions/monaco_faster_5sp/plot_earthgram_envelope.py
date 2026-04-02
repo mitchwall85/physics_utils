@@ -30,7 +30,10 @@ def _collect_envelope_data(
 
                 altitude_map.setdefault(float(altitude), []).append(float(mean_density))
 
-                density_perturbation_pct = fields.get("perturbation density")
+                density_perturbation_pct = fields.get("perturbation percent density")
+                if density_perturbation_pct is None:
+                    # Backward compatibility: older parsed keys may omit "percent".
+                    density_perturbation_pct = fields.get("perturbation density")
                 if density_perturbation_pct is None:
                     continue
 

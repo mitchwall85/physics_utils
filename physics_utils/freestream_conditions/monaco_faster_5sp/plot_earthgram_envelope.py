@@ -30,7 +30,10 @@ def _collect_envelope_data(
 
                 altitude_map.setdefault(float(altitude), []).append(float(mean_density))
 
-                density_perturbation_pct = fields.get("perturbation density")
+                density_perturbation_pct = fields.get("perturbation percent density")
+                if density_perturbation_pct is None:
+                    # Backward compatibility: older parsed keys may omit "percent".
+                    density_perturbation_pct = fields.get("perturbation density")
                 if density_perturbation_pct is None:
                     continue
 
@@ -104,7 +107,7 @@ def plot_envelopes(
     density_path = input_dir / f"{output_prefix}_density_envelope.png"
     perturbation_path = input_dir / f"{output_prefix}_density_pct_envelope.png"
     maxmin_path = input_dir / f"{output_prefix}_density_pct_maxmin.png"
-    perturbation_max_path = input_dir / f"{output_prefix}_density_perturbation_max.png"
+    perturbation_max_path = input_dir / "earthgram_perturbation_max_v2.png"
 
     fig_density, ax_density = plt.subplots(1, 1, figsize=(6, 8), constrained_layout=True)
     ax_density.plot(density_min, altitudes, label="Min mean density", linewidth=2)

@@ -30,6 +30,23 @@ except ImportError:
 EarthgramData = dict[float, dict[float, dict[float, dict[str, float]]]]
 
 
+NUMBER_DENSITY_KEY_CANDIDATES: tuple[str, ...] = (
+    "total number density",
+    "number density",
+)
+
+
+def _first_available_number_density(fields: dict[str, float], preferred_key: str) -> float | None:
+    """Get first available number-density field from preferred key and fallbacks."""
+    keys = (preferred_key, *NUMBER_DENSITY_KEY_CANDIDATES)
+    for key in keys:
+        value = fields.get(key)
+        if value is None:
+            continue
+        return float(value)
+    return None
+
+
 def _altitude_speed_of_sound_profile(data: EarthgramData) -> tuple[np.ndarray, np.ndarray]:
     """Return altitude grid [km] and mean speed-of-sound profile [m/s]."""
     alt_to_speeds: dict[float, list[float]] = {}
@@ -57,7 +74,7 @@ def _altitude_knudsen_profile(
     data: EarthgramData,
     d_avg_m: float,
     characteristic_length_m: float,
-    number_density_key: str = "number density",
+    number_density_key: str = "total number density",
 ) -> tuple[np.ndarray, np.ndarray]:
     """Return altitude grid [km] and Knudsen number profile [-]."""
     alt_to_n: dict[float, list[float]] = {}
@@ -65,15 +82,16 @@ def _altitude_knudsen_profile(
     for lon_map in data.values():
         for alt_map in lon_map.values():
             for altitude_km, fields in alt_map.items():
-                n_val = fields.get(number_density_key)
+                n_val = _first_available_number_density(fields, preferred_key=number_density_key)
                 if n_val is None:
                     continue
-                alt_to_n.setdefault(float(altitude_km), []).append(float(n_val))
+                alt_to_n.setdefault(float(altitude_km), []).append(n_val)
 
     if not alt_to_n:
         raise ValueError(
-            f"No '{number_density_key}' entries were parsed from this EarthGRAM file. "
-            "Set --number-density-key if your file uses a different label."
+            "No usable number-density entries were parsed from this EarthGRAM file. "
+            f"Tried keys: [{number_density_key}, {', '.join(NUMBER_DENSITY_KEY_CANDIDATES)}]. "
+            "Set --number-density-key if your file uses a different normalized label."
         )
 
     if d_avg_m <= 0.0:
@@ -139,7 +157,7 @@ def plot_mach_isocontours(
     velocity_samples: int = 241,
     d_avg_m: float = 3.7e-10,
     characteristic_length_m: float = 1.0,
-    number_density_key: str = "number density",
+    number_density_key: str = "total number density",
     output_path: str | Path = "mach_isocontours_altitude_velocity.png",
 ) -> Path:
     """Create altitude-vs-velocity plot with Mach-number contour lines and a Knudsen axis."""
@@ -241,7 +259,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--number-density-key",
         type=str,
-        default="number density",
+        default="total number density",
         help="Normalized EarthGRAM key used for number density.",
     )
     parser.add_argument(

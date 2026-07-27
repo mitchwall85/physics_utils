@@ -156,7 +156,7 @@ def plot_mach_isocontours(
     velocity_max_kms: float = 12.0,
     velocity_samples: int = 241,
     d_avg_m: float = 3.7e-10,
-    characteristic_length_m: float = 1.0,
+    characteristic_length_m: float = 0.025,
     number_density_key: str = "total number density",
     output_path: str | Path = "mach_isocontours_altitude_velocity.png",
 ) -> Path:

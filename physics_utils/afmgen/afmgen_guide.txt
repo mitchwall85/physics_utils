@@ -1,0 +1,116 @@
+Compiling AFMGEN
+----------------
+The code can be compiled by typing "make" or "make afmgen" in the
+source directory. The utility "afmswap" can be compiled by typing
+"make afmswap". The executables are copied to the directory specified
+by the makefile variable BINDIR (set this variable to an appropriate
+value).
+
+Running AFMGEN - Input files
+----------------------------
+Two input files are required in order to run the grid generator -
+"control.dat" and "bound.in".
+
+"control.dat" contains control parameters which govern the generation
+procedure. Here is a sample file:
+
+0.5e-2   ! Maximum allowable cell size
+5e-5     ! Minimum allowable cell size
+1.0      ! Factor to scale MFP
+4.01e-10 ! Hard Sphere diameter of molecule
+5.0      ! Condition for "near" active nodes (DO NOT CHANGE)
+5000     ! Frequency to print grid to disk
+100      ! Indicate progress
+0        ! Scaling type (0 = user/constant, 1 = mfp)
+
+A few notes:
+- Factor to scale MFP and Hard sphere diameter are used when scaling
+  is done based on mean free path data from a previous solution.
+- If the scaling type is set to 0, cell sizes are determined by the
+  function "userscale" (in scale.c). By default this uses the minimum
+  cell size throughout the entire grid. This can be modified to allow
+  user-defined scaling.
+- If scaling type is set to 1, cell sizes are determined using the
+  function "mfpscale" (in mfpscale.c). This uses data from a previous
+  MONACO simulation to scale the grid. In order to use this you must
+  have a Tecplot datafile "mfp.plt" in the current directory which
+  contains the variables "X","Y","MFP" in point format. (There can be
+  others but these three must be first. You must also have the
+  unformatted grid file used by the previous simulation called
+  "old.unf"). 
+
+
+"bound.in" contains the definition of the boundary of the domain. It
+consists of a list a boundary segments which can be either line
+segments or circular arcs. The external boundaries must be specified
+in counter-clockwise order while any internal boundaries must be
+specified in clockwise order.
+
+The format for a line segment is:
+
+L x0 y0 x1 y1 dir bc bcnum
+
+(x0,y0) are the coordinates of the start of the segment.
+(x1,y1) are the coordinates of the end of the segment.
+dir     indicated whether to place points along this segment in the
+          forward direction (dir = 1) or backward direction (dir = -1)
+bc      is the MONACO boundary condition of the segment
+          (-1 for WALL, -2 for INFLOW, -4 for OUTFLOW, -8 for SYMMETRY, -3 for SPUTTERING)
+bcnum   (optional, must be >0) is the boundary condition number, if 
+          different conditions will be specified on different boundaries 
+          of the same bc type
+
+The format of a circular arc is:
+
+C xc yc R phi0 phi1 dir bc
+
+(xc,yc)      are the coordinates of the center of the circle.
+(phi0, phi1) are the beginning and ending angles of the arc, measured
+               from the positive x-axis (in degrees)
+dir, bc  (see line segment)
+
+The format of a parabolic arc is:
+
+P ivar a b c var0 var1 dir bc
+
+ivar is the index of the independent coordinate variable.
+      ivar = 0 -> x is independent variable
+      ivar = 1 -> y is independent variable
+(a,b,c) are coefficients of parabolic equation:
+      f(y) = a*y**2 + b*y + c 
+      NOTE: here, y is the independent variable, so ivar=1.
+      if ivar=0, swap y for x in the parabolic equation
+(var0, var1) are the beginning and ending independent variable values of the arc
+dir, bc  (see line segment)
+
+A sample file:
+
+# Symmetry line 
+L 0.0 0.0 0.10 0.0 1 -8
+# Outflow Condition
+C 0.0 0.0 0.10 0.0 90.0 1 -4
+L 0.0 0.10 0.0 0.001 -1 -4
+
+# Inflow
+L 0.0 0.001 0.0 0.0 -1 -2
+
+Generating a Grid
+-----------------
+1) Prepare input files "control.dat", "bound.in"
+2) Run AFMGEN by typing "afmgen"
+3) Run the utility AFMSWAP to improve the quality of the grid.
+   Type "afmswap afm"
+
+Output Files
+------------
+AFMGEN produces two output files - "bound.out", "afm.ngp"
+
+"bound.out" contains a list of nodes along the boundary of the
+domain. This can be used to check the boundary definition before an
+entire grid has been created.
+
+"afm.ngp" contains the grid definition in NGP format which can be used
+with MONACO.
+
+AFMSWAP takes the grid "afm.ngp" and writes the improved grid in "grid.ngp".
+

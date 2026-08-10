@@ -25,14 +25,20 @@ def generate_shades(n, base_color):
     
     return shades
 
-def generate_jet_colors(n):
-    # Get the 'jet' colormap from matplotlib
-    cmap = plt.get_cmap('jet')
-    
-    # Generate n colors from the jet colormap
+def generate_cmap_colors(n, cmap):
+    """Return n evenly spaced colors across a Matplotlib colormap."""
+    cmap_obj = plt.get_cmap(cmap)
+
+    if n <= 0:
+        return []
+
     if n == 1:
-        jet_colors = [cmap(0.5)]
-    else:
-        jet_colors = [cmap(i / (n - 1)) for i in range(n)]
-    
-    return jet_colors
+        return [cmap_obj(0.0)]
+
+    upper = 0.90
+    return [cmap_obj(i * upper / (n - 1)) for i in range(n)]
+
+
+def generate_jet_colors(n):
+    """Return n evenly spaced colors across the useful jet color range."""
+    return generate_cmap_colors(n, 'jet')
